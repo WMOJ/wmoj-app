@@ -27,6 +27,7 @@ export default async function ManageProblemsPage() {
     supabase
       .from('problems')
       .select('id,name,contest,is_active,updated_at,created_at')
+      .eq('created_by', userId)
   ]);
 
   const contests = contestsData || [];

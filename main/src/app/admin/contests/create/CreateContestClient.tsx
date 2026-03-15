@@ -63,13 +63,7 @@ export default function CreateContestClient() {
 
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-foreground">Description (Markdown) *</label>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <MarkdownEditor value={formData.description} onChange={(value: string) => setFormData(prev => ({ ...prev, description: value }))} placeholder="Write contest description in Markdown..." height={360} />
-                <div className="p-4 overflow-auto max-h-[480px] bg-surface-1 border border-border rounded-lg">
-                  <div className="text-xs text-text-muted uppercase tracking-wider font-medium mb-3">Preview</div>
-                  <MarkdownRenderer content={formData.description || '*Nothing yet...*'} />
-                </div>
-              </div>
+              <MarkdownEditor value={formData.description} onChange={(value: string) => setFormData(prev => ({ ...prev, description: value }))} placeholder="Write contest description in Markdown..." height={360} />
             </div>
 
             <div className="max-w-xs space-y-1.5">
@@ -86,7 +80,7 @@ export default function CreateContestClient() {
                   { key: 'name', header: 'Name', className: 'w-[25%]', render: (r) => <span className="text-foreground font-medium">{r.name || '-'}</span> },
                   { key: 'description', header: 'Description', className: 'w-[50%]', render: (r) => <div className="text-text-muted text-sm line-clamp-2 break-words">{r.description || '-'}</div> },
                   { key: 'length', header: 'Length', className: 'w-[15%]', render: (r) => <span className="text-text-muted font-mono">{r.length || 0} min</span> },
-                  { key: 'active', header: 'Active', className: 'w-[10%]', render: () => <span className="text-success text-xs font-medium">Yes</span> },
+                  { key: 'active', header: 'Active', className: 'w-[10%]', render: () => <span className="text-warning text-xs font-medium">No</span> },
                 ];
                 return <DataTable<Row> columns={columns} rows={[{ name: formData.name, description: formData.description, length: formData.length, active: true }]} rowKey={(_r, i) => String(i)} />;
               })()}
