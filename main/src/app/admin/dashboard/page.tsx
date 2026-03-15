@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import AdminDashboardClient from './AdminDashboardClient';
-import { getServerSupabase, getServiceSupabase } from '@/lib/supabaseServer';
+import { getServerSupabase } from '@/lib/supabaseServer';
 
 export default async function AdminDashboardPage() {
   const supabase = await getServerSupabase();
@@ -32,10 +32,7 @@ export default async function AdminDashboardPage() {
     return <AdminDashboardClient initialSubmissions={[]} />;
   }
 
-  // Use service role to read code column (bypasses column-level privilege)
-  const serviceSupabase = getServiceSupabase();
-
-  const { data: subs, error: subsErr } = await serviceSupabase
+  const { data: subs, error: subsErr } = await supabase
     .from('submissions')
     .select('id, created_at, language, code, results, summary, status, problem_id, user_id')
     .in('problem_id', myProblemIds)
