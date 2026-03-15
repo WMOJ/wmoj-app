@@ -1,4 +1,4 @@
-export type UserRole = 'regular' | 'admin';
+export type UserRole = 'regular' | 'admin' | 'manager';
 
 export interface UserProfile {
   id: string;
@@ -15,6 +15,8 @@ export const getUserDashboardPath = (userRole: UserRole): string => {
   switch (userRole) {
     case 'admin':
       return '/admin/dashboard';
+    case 'manager':
+      return '/manager/dashboard';
     case 'regular':
     default:
       return '/dashboard';

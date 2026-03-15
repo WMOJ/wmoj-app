@@ -19,6 +19,17 @@ export async function getUserRole(userId: string): Promise<UserRole> {
       return 'admin';
     }
 
+    // Check if user exists in managers table
+    const { data: managerUser, error: managerError } = await supabase
+      .from('managers')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!managerError && managerUser) {
+      return 'manager';
+    }
+
     // Check if user exists in users table (regular user)
     const { data: regularUser, error: regularError } = await supabase
       .from('users')
@@ -49,6 +60,8 @@ export async function getUserDashboardPath(userId: string): Promise<string> {
   switch (role) {
     case 'admin':
       return '/admin/dashboard';
+    case 'manager':
+      return '/manager/dashboard';
     case 'regular':
     default:
       return '/dashboard';

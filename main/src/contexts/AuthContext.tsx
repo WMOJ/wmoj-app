@@ -140,6 +140,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Check if user is a manager
+      const { data: managerUser, error: managerError } = await supabase
+        .from('managers')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!managerError && managerUser) {
+        // User is a manager, update their last login
+        console.log('Updating last login for manager user:', user.email);
+
+        const { error: updateError } = await supabase
+          .from('managers')
+          .update({
+            last_login: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('Error updating manager profile:', updateError);
+        }
+
+        // Update user role and dashboard path
+        await updateUserRoleAndPath(user.id);
+        return;
+      }
+
       // Check if user profile already exists in users table
       const { data: existingUser, error: selectError } = await supabase
         .from('users')

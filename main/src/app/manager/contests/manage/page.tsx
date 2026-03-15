@@ -1,0 +1,25 @@
+import { redirect } from 'next/navigation';
+import { getServerSupabase } from '@/lib/supabaseServer';
+import ManagerManageContestsClient from './ManagerManageContestsClient';
+
+export default async function ManagerManageContestsPage() {
+  const supabase = await getServerSupabase();
+
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData?.user?.id;
+  if (!userId) redirect('/auth/login');
+
+  const { data: managerRow } = await supabase
+    .from('managers')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!managerRow) redirect('/dashboard');
+
+  const { data } = await supabase
+    .from('contests')
+    .select('id,name,length,is_active,updated_at,created_at');
+
+  return <ManagerManageContestsClient initialContests={data || []} />;
+}

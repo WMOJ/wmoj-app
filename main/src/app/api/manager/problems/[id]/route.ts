@@ -1,0 +1,96 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getManagerSupabase } from '@/lib/managerAuth';
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const auth = await getManagerSupabase(request);
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const { supabase } = auth;
+  const { data, error } = await supabase
+    .from('problems')
+    .select('id,name,content,contest,is_active,time_limit,memory_limit,difficulty,input,output,created_at,updated_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) {
+    console.error('Fetch manager problem error:', error);
+    return NextResponse.json({ error: 'Failed to fetch problem' }, { status: 500 });
+  }
+  if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  const { input: _input, output: _output, ...rest } = data;
+  const test_case_count = Array.isArray(_input) ? _input.length : 0;
+  return NextResponse.json({ problem: { ...rest, test_case_count } });
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const auth = await getManagerSupabase(request);
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const { supabase } = auth;
+  const body = await request.json();
+  const updates: Record<string, unknown> = {};
+  if (body.name !== undefined) updates.name = body.name;
+  if (body.content !== undefined) updates.content = body.content;
+  if (body.difficulty !== undefined) updates.difficulty = body.difficulty;
+  if (body.is_active !== undefined) updates.is_active = !!body.is_active;
+  if (body.time_limit !== undefined) {
+    if (typeof body.time_limit !== 'number' || isNaN(body.time_limit) || body.time_limit <= 0) {
+      return NextResponse.json({ error: 'Time limit must be a positive number' }, { status: 400 });
+    }
+    updates.time_limit = body.time_limit;
+  }
+  if (body.memory_limit !== undefined) {
+    if (typeof body.memory_limit !== 'number' || isNaN(body.memory_limit) || body.memory_limit <= 0) {
+      return NextResponse.json({ error: 'Memory limit must be a positive number' }, { status: 400 });
+    }
+    updates.memory_limit = body.memory_limit;
+  }
+  if (body.contest !== undefined) {
+    if (body.contest !== null && typeof body.contest !== 'string') {
+      return NextResponse.json({ error: 'Contest must be a string ID or null' }, { status: 400 });
+    }
+    updates.contest = body.contest;
+  }
+  if (body.input !== undefined && body.output !== undefined) {
+    if (!Array.isArray(body.input) || !Array.isArray(body.output)) {
+      return NextResponse.json({ error: 'Input and output must be arrays' }, { status: 400 });
+    }
+    if (body.input.length === 0 || body.output.length === 0) {
+      return NextResponse.json({ error: 'Input and output arrays must not be empty' }, { status: 400 });
+    }
+    if (body.input.length !== body.output.length) {
+      return NextResponse.json({ error: 'Input and output arrays must have equal length' }, { status: 400 });
+    }
+    updates.input = body.input;
+    updates.output = body.output;
+  }
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+  }
+  const { data, error } = await supabase
+    .from('problems')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+  if (error) {
+    console.error('Update problem error:', error);
+    return NextResponse.json({ error: 'Failed to update problem' }, { status: 500 });
+  }
+  return NextResponse.json({ problem: data });
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const auth = await getManagerSupabase(request);
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const { supabase } = auth;
+  const { error } = await supabase
+    .from('problems')
+    .delete()
+    .eq('id', id);
+  if (error) {
+    console.error('Delete problem error:', error);
+    return NextResponse.json({ error: 'Failed to delete problem' }, { status: 500 });
+  }
+  return NextResponse.json({ success: true });
+}
