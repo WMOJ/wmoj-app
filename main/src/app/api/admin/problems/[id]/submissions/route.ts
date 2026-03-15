@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/adminAuth';
-import { getServiceSupabase } from '@/lib/supabaseServer';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -27,10 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
         const problemName = problem.name || 'Problem';
 
-        // Use service role client to read code column (bypasses column-level privilege restriction)
-        const serviceSupabase = getServiceSupabase();
-
-        const { data: submissions, error } = await serviceSupabase
+        const { data: submissions, error } = await supabase
             .from('submissions')
             .select('*')
             .eq('problem_id', id)

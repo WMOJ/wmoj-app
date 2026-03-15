@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSupabaseFromToken, getServiceSupabase } from '@/lib/supabaseServer';
+import { getServerSupabaseFromToken } from '@/lib/supabaseServer';
 
 export async function GET(request: Request) {
   try {
@@ -46,10 +46,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ submissions: [] });
     }
 
-    // Use service role client to read code column (bypasses column-level privilege restriction)
-    const serviceSupabase = getServiceSupabase();
-
-    const { data: subs, error: subsErr } = await serviceSupabase
+    const { data: subs, error: subsErr } = await supabase
       .from('submissions')
       .select('id, created_at, language, code, results, summary, status, problem_id, user_id')
       .in('problem_id', ownProblemIds)
