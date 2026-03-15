@@ -1,15 +1,5 @@
 # RLS Policy Explanation
 
-This document describes every Row-Level Security (RLS) policy in the database in plain English, and summarises what each type of user account can and cannot do.
-
----
-
-## What is RLS?
-
-Row-Level Security is a database-level access control system. Every time the application reads or writes data, Postgres automatically checks whether the logged-in user is allowed to perform that operation on that specific row. If no policy permits the action, it is silently blocked. These rules are enforced at the database layer regardless of what the application code does.
-
----
-
 ## Tables and Their Policies
 
 ### `users`
@@ -62,7 +52,7 @@ Stores the programming problems that users can solve.
 | Policy | What it means |
 |--------|---------------|
 | **Allow all users to view problems** | Anyone — logged in or not — can read all problems. |
-| **Admins can insert own problems** | An active admin can create a problem, but only if the `created_by` field is set to their own user ID. They cannot create a problem attributed to someone else. |
+| **Admins can insert own problems** | An active admin can create a problem, but only if `created_by` is their own user ID and `is_active` is `false`. Problems must be created inactive — an admin cannot create a problem that is already active. |
 | **Admins can update own problems** | An active admin can edit problems that they personally created. They cannot edit problems created by other admins. Additionally, they cannot change the `is_active` flag through this policy — the update is only permitted if `is_active` stays the same as it currently is in the database. |
 | **Admins can delete own problems** | An active admin can delete problems that they personally created. |
 | **managers_all_problems** | An active manager has full unrestricted access — they can read, create, update, and delete any problem, regardless of who created it and with no field restrictions. |
@@ -76,7 +66,7 @@ Stores programming contests.
 | Policy | What it means |
 |--------|---------------|
 | **Allow all users to view contests** | Anyone — logged in or not — can read all contests. |
-| **Admins can insert own contests** | An active admin can create a contest, but only if `created_by` is set to their own user ID. |
+| **Admins can insert own contests** | An active admin can create a contest, but only if `created_by` is their own user ID and `is_active` is `false`. Contests must be created inactive — an admin cannot create a contest that is already active. |
 | **Admins can update own contests** | An active admin can edit contests they personally created. They cannot change the `is_active` flag through this policy — it must remain unchanged. |
 | **Admins can delete own contests** | An active admin can delete contests they personally created. |
 | **managers_all_contests** | An active manager has full unrestricted access — they can read, create, update, and delete any contest, regardless of who created it and with no field restrictions. |
@@ -175,8 +165,8 @@ Full unrestricted access to the entire database. An active manager can read, cre
 
 Broad control with some ownership restrictions:
 
-- **Problems:** create (attributed to themselves), update their own, delete their own — cannot change `is_active` via the admin update policy
-- **Contests:** create (attributed to themselves), update their own, delete their own — same `is_active` restriction applies
+- **Problems:** create their own (must be created with `is_active = false`), update their own (cannot change `is_active`), delete their own
+- **Contests:** create their own (must be created with `is_active = false`), update their own (cannot change `is_active`), delete their own
 - **Contest participants:** full access — read, create, update, delete any record
 - **Countdown timers:** full access to every user's timers
 - **Join history:** full access — read, insert, update, delete any record
@@ -191,7 +181,7 @@ Broad control with some ownership restrictions:
 
 2. **Managers have broader access than admins.** Managers have unrestricted full access to every table. Admins are limited to managing content they personally created (for problems and contests) and cannot manage other admins' rows.
 
-3. **Admins own their own content.** An admin can only create/delete the problems and contests they personally created. There is no policy allowing one admin to delete another admin's content.
+3. **Admins own their own content, and cannot activate it.** An admin can only create/delete the problems and contests they personally created. All content must be created inactive (`is_active = false`) and cannot be toggled active via update. Only managers can activate content.
 
 4. **Public read is broad.** Problems, contests, contest participants, and submissions are all publicly readable without login. User profiles and join history require a login to read.
 
