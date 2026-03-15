@@ -2,14 +2,15 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export const Header = () => {
-    const { user, signOut } = useAuth();
+    const { user, userRole, signOut } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -30,6 +31,22 @@ export const Header = () => {
 
     const initial = (user.user_metadata?.username || user.email || "U").charAt(0).toUpperCase();
     const displayName = user.user_metadata?.username || user.email;
+
+    const switchButton = (() => {
+        if (userRole === 'admin') {
+            if (pathname.startsWith('/admin')) {
+                return { label: 'Switch to User View', path: '/dashboard' };
+            }
+            return { label: 'Switch to Admin Panel', path: '/admin/dashboard' };
+        }
+        if (userRole === 'manager') {
+            if (pathname.startsWith('/manager')) {
+                return { label: 'Switch to User View', path: '/dashboard' };
+            }
+            return { label: 'Switch to Manager Panel', path: '/manager/dashboard' };
+        }
+        return null;
+    })();
 
     return (
         <header className="sticky top-0 z-40 h-14 border-b border-border bg-background flex items-center justify-end px-6 gap-3">
@@ -57,6 +74,17 @@ export const Header = () => {
 
                 {isMenuOpen && (
                     <div className="absolute right-0 mt-1 w-48 bg-surface-1 border border-border rounded-lg py-1 shadow-lg">
+                        {switchButton && (
+                            <button
+                                onClick={() => {
+                                    setIsMenuOpen(false);
+                                    router.push(switchButton.path);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface-2"
+                            >
+                                {switchButton.label}
+                            </button>
+                        )}
                         <div className="h-px bg-border my-1" />
                         <button
                             onClick={handleSignOut}

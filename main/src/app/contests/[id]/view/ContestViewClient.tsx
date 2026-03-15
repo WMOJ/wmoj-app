@@ -17,6 +17,7 @@ interface ContestDetail {
   name: string;
   description: string | null;
   length: number;
+  created_by: string;
 }
 
 interface ContestViewClientProps {
@@ -26,8 +27,10 @@ interface ContestViewClientProps {
 
 export default function ContestViewClient({ error, initialContest }: ContestViewClientProps) {
   const router = useRouter();
-  const { user, session } = useAuth();
+  const { user, session, userRole } = useAuth();
   const { startCountdown } = useCountdown();
+
+  const isOwnContest = userRole === 'admin' && user?.id === initialContest?.created_by;
 
   const [joining, setJoining] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
@@ -97,16 +100,29 @@ export default function ContestViewClient({ error, initialContest }: ContestView
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleJoinClick}
-                    disabled={joining}
-                    className="w-full h-10 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {joining ? <><LoadingSpinner size="sm" /><span>Joining...</span></> : 'Join Contest'}
-                  </button>
-                  <p className="text-xs text-text-muted mt-3 text-center">
-                    By joining, you agree to the contest rules.
-                  </p>
+                  {isOwnContest ? (
+                    <>
+                      <div className="w-full h-10 flex items-center justify-center text-sm text-text-muted border border-border rounded-lg">
+                        You created this contest
+                      </div>
+                      <p className="text-xs text-text-muted mt-3 text-center">
+                        Admins cannot join their own contests.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleJoinClick}
+                        disabled={joining}
+                        className="w-full h-10 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {joining ? <><LoadingSpinner size="sm" /><span>Joining...</span></> : 'Join Contest'}
+                      </button>
+                      <p className="text-xs text-text-muted mt-3 text-center">
+                        By joining, you agree to the contest rules.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
