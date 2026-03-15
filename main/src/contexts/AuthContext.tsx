@@ -135,6 +135,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Error updating admin profile:', updateError);
         }
 
+        // Ensure admin also has a regular user profile
+        await supabase.from('users').upsert({
+          id: user.id,
+          username: user.user_metadata?.username || user.email?.split('@')[0] || 'user',
+          email: user.email || '',
+          created_at: user.created_at,
+          last_login: new Date().toISOString(),
+        }, { onConflict: 'id', ignoreDuplicates: false });
+
         // Update user role and dashboard path
         await updateUserRoleAndPath(user.id);
         return;
@@ -162,6 +171,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (updateError) {
           console.error('Error updating manager profile:', updateError);
         }
+
+        // Ensure manager also has a regular user profile
+        await supabase.from('users').upsert({
+          id: user.id,
+          username: user.user_metadata?.username || user.email?.split('@')[0] || 'user',
+          email: user.email || '',
+          created_at: user.created_at,
+          last_login: new Date().toISOString(),
+        }, { onConflict: 'id', ignoreDuplicates: false });
 
         // Update user role and dashboard path
         await updateUserRoleAndPath(user.id);

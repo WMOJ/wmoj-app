@@ -34,7 +34,7 @@ export async function POST(
     // Ensure contest is active and get contest details
     const { data: contest, error: contestErr } = await supabase
       .from('contests')
-      .select('id,is_active,length')
+      .select('id,is_active,length,created_by')
       .eq('id', id)
       .maybeSingle();
 
@@ -45,6 +45,21 @@ export async function POST(
     if (!contest || !contest.is_active) {
       console.log('Contest not found or inactive:', { contest, is_active: contest?.is_active });
       return NextResponse.json({ error: 'Contest is not active' }, { status: 403 });
+    }
+
+    // Check if admin is trying to join their own contest
+    if (contest.created_by === userId) {
+      const { data: adminRow } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      if (adminRow) {
+        return NextResponse.json(
+          { error: 'Admins cannot join a contest they created' },
+          { status: 403 }
+        );
+      }
     }
 
     // Parallelize multiple checks for better performance
