@@ -59,7 +59,7 @@ export function CountdownProvider({ children }: { children: React.ReactNode }) {
       const { createClient } = await import('@supabase/supabase-js');
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
       );
 
       const { data: session } = await supabase.auth.getSession();
@@ -142,7 +142,7 @@ export function CountdownProvider({ children }: { children: React.ReactNode }) {
       const { createClient } = await import('@supabase/supabase-js');
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
       );
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -181,7 +181,7 @@ export function CountdownProvider({ children }: { children: React.ReactNode }) {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
         );
 
         // Find active contest for user

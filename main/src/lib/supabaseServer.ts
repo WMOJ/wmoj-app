@@ -3,11 +3,11 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
 export async function getServerSupabase() {
   const cookieStore = await cookies();
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(supabaseUrl, supabasePublishableKey, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value;
@@ -27,7 +27,7 @@ export async function getServerSupabase() {
 }
 
 export function getServerSupabaseFromToken(accessToken: string): SupabaseClient {
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  return createClient(supabaseUrl, supabasePublishableKey, {
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`,
