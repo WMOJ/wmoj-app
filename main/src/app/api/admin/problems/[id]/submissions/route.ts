@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/adminAuth';
+import { getServiceSupabase } from '@/lib/supabaseServer';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -7,14 +8,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
         const auth = await getAdminSupabase(request);
         if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
-        const { supabase } = auth;
+        const { supabase, user } = auth;
 
-        // Fetch Problem Name
-        const { data: problem } = await supabase.from('problems').select('name').eq('id', id).single();
-        const problemName = problem?.name || 'Problem';
+        // Verify the problem belongs to this admin
+        const { data: problem, error: problemErr } = await supabase
+            .from('problems')
+            .select('name, created_by')
+            .eq('id', id)
+            .single();
 
-        // Fetch Submissions
-        const { data: submissions, error } = await supabase
+        if (problemErr || !problem) {
+            return NextResponse.json({ error: 'Problem not found' }, { status: 404 });
+        }
+
+        if (problem.created_by !== user.id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        const problemName = problem.name || 'Problem';
+
+        // Use service role client to read code column (bypasses column-level privilege restriction)
+        const serviceSupabase = getServiceSupabase();
+
+        const { data: submissions, error } = await serviceSupabase
             .from('submissions')
             .select('*')
             .eq('problem_id', id)

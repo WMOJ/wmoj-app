@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
           name,
           description,
           length,
-          is_active: true
+          is_active: false,
+          created_by: authUser.id
         }
       ])
       .select()

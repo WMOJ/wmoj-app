@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     const auth = await getManagerSupabase(request);
     if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
-    const { supabase } = auth;
+    const { supabase, user } = auth;
 
     const { data, error } = await supabase
       .from('problems')
@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
           output,
           time_limit: timeLimit || 5000,
           memory_limit: memoryLimit || 256,
-          difficulty: difficulty || 'Easy'
+          difficulty: difficulty || 'Easy',
+          created_by: user.id
         }
       ])
       .select()

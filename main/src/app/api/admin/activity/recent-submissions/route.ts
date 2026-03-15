@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSupabaseFromToken } from '@/lib/supabaseServer';
+import { getServerSupabaseFromToken, getServiceSupabase } from '@/lib/supabaseServer';
 
 export async function GET(request: Request) {
   try {
@@ -15,21 +15,44 @@ export async function GET(request: Request) {
     if (authErr || !authData?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const userId = authData.user.id;
+    const adminId = authData.user.id;
 
     const { data: adminRow, error: adminErr } = await supabase
       .from('admins')
       .select('id')
-      .eq('id', userId)
+      .eq('id', adminId)
       .maybeSingle();
     if (adminErr || !adminRow) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Fetch ALL submissions (no FK constraints exist, so we join manually)
-    const { data: subs, error: subsErr } = await supabase
+    // Fetch admin's own problem IDs
+    const { data: ownProblems, error: problemsErr } = await supabase
+      .from('problems')
+      .select('id, name')
+      .eq('created_by', adminId);
+
+    if (problemsErr) {
+      console.error('Admin problems fetch error:', problemsErr);
+      return NextResponse.json({ error: 'Failed to fetch problems' }, { status: 500 });
+    }
+
+    const ownProblemIds = (ownProblems || []).map(p => p.id);
+    const problemMap = new Map<string, string>(
+      (ownProblems || []).map(p => [p.id, p.name])
+    );
+
+    if (ownProblemIds.length === 0) {
+      return NextResponse.json({ submissions: [] });
+    }
+
+    // Use service role client to read code column (bypasses column-level privilege restriction)
+    const serviceSupabase = getServiceSupabase();
+
+    const { data: subs, error: subsErr } = await serviceSupabase
       .from('submissions')
       .select('id, created_at, language, code, results, summary, status, problem_id, user_id')
+      .in('problem_id', ownProblemIds)
       .order('created_at', { ascending: false });
 
     if (subsErr) {
@@ -39,21 +62,8 @@ export async function GET(request: Request) {
 
     const rows = subs || [];
 
-    // Collect unique IDs for batch lookup
-    const problemIds = [...new Set(rows.map(s => s.problem_id).filter(Boolean))];
-    const userIds = [...new Set(rows.map(s => s.user_id).filter(Boolean))];
-
-    // Fetch problem names
-    const problemMap = new Map<string, string>();
-    if (problemIds.length > 0) {
-      const { data: problems } = await supabase
-        .from('problems')
-        .select('id, name')
-        .in('id', problemIds);
-      (problems || []).forEach(p => problemMap.set(p.id, p.name));
-    }
-
     // Fetch user names
+    const userIds = [...new Set(rows.map(s => s.user_id).filter(Boolean))];
     const userMap = new Map<string, string>();
     if (userIds.length > 0) {
       const { data: users } = await supabase

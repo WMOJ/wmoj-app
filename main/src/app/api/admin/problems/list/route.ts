@@ -16,16 +16,17 @@ async function getAdminSupabase(request: NextRequest) {
     .maybeSingle();
   if (adminErr) return { error: 'Authorization check failed', status: 500 };
   if (!adminRow || adminRow.is_active === false) return { error: 'Forbidden', status: 403 };
-  return { supabase };
+  return { supabase, user };
 }
 
 export async function GET(request: NextRequest) {
   const auth = await getAdminSupabase(request);
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const { supabase } = auth;
+  const { supabase, user } = auth;
   const { data, error } = await supabase
     .from('problems')
-    .select('id,name,contest,is_active,updated_at,created_at');
+    .select('id,name,contest,is_active,updated_at,created_at')
+    .eq('created_by', user.id);
   if (error) {
     console.error('List problems error:', error);
     return NextResponse.json({ error: 'Failed to fetch problems' }, { status: 500 });

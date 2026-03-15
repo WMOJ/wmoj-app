@@ -43,15 +43,6 @@ export const AdminSidebar = () => {
             ),
         },
         {
-            label: "User Management",
-            href: "/admin/usermanagement",
-            icon: (
-                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M7 10a4 4 0 118 0 4 4 0 01-8 0z" />
-                </svg>
-            ),
-        },
-        {
             label: "Create Contest",
             href: "/admin/contests/create",
             icon: (
