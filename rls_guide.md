@@ -1,6 +1,4 @@
-# RLS Policy Explanation
-
-## Tables and Their Policies
+# RLS Policies
 
 ### `users`
 
