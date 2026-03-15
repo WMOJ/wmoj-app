@@ -63,13 +63,7 @@ export default function ManagerCreateContestClient() {
 
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-foreground">Description (Markdown) *</label>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <MarkdownEditor value={formData.description} onChange={(value: string) => setFormData(prev => ({ ...prev, description: value }))} placeholder="Write contest description in Markdown..." height={360} />
-                <div className="p-4 overflow-auto max-h-[480px] bg-surface-1 border border-border rounded-lg">
-                  <div className="text-xs text-text-muted uppercase tracking-wider font-medium mb-3">Preview</div>
-                  <MarkdownRenderer content={formData.description || '*Nothing yet...*'} />
-                </div>
-              </div>
+              <MarkdownEditor value={formData.description} onChange={(value: string) => setFormData(prev => ({ ...prev, description: value }))} placeholder="Write contest description in Markdown..." height={360} />
             </div>
 
             <div className="max-w-xs space-y-1.5">

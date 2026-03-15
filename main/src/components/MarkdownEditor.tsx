@@ -69,7 +69,6 @@ export function MarkdownEditor({
                 fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
               },
             }}
-            toolbarHeight={50}
             commands={[
               commands.bold,
               commands.italic,

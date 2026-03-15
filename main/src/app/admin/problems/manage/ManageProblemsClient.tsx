@@ -39,15 +39,6 @@ export default function ManageProblemsClient({
     });
   }, [problems, filter, search]);
 
-  const toggleActive = async (p: ProblemRow) => {
-    try {
-      const res = await fetch(`/api/admin/problems/${p.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ is_active: !p.is_active }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to toggle');
-      setProblems(prev => prev.map(row => row.id === p.id ? { ...row, is_active: !p.is_active } : row));
-    } catch (e: unknown) { setActionMessage(e instanceof Error ? e.message : 'Failed to toggle'); }
-  };
-
   const deleteProblem = async (p: ProblemRow) => {
     if (!confirm('Delete this problem? This action cannot be undone.')) return;
     try {
@@ -71,7 +62,6 @@ export default function ManageProblemsClient({
         <div className="flex gap-1.5">
           <Link href={`/admin/problems/${r.id}/submissions`} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-2 text-foreground hover:bg-surface-3">Submissions</Link>
           <Link href={`/admin/problems/${r.id}/edit`} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20">Edit</Link>
-          <button onClick={() => toggleActive(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-warning/10 text-warning hover:bg-warning/20">{r.is_active ? 'Deactivate' : 'Activate'}</button>
           <button onClick={() => deleteProblem(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20">Delete</button>
         </div>
       )
@@ -84,7 +74,7 @@ export default function ManageProblemsClient({
         <div className="w-full space-y-6">
           <div>
             <h1 className="text-xl font-semibold text-foreground">Manage Problems</h1>
-            <p className="text-sm text-text-muted mt-1">Edit, activate/deactivate, or delete problems.</p>
+            <p className="text-sm text-text-muted mt-1">Edit or delete problems. Activation is managed by Managers.</p>
           </div>
 
           {actionMessage && (

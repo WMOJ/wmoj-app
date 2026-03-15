@@ -15,7 +15,7 @@ interface ContestRow {
 }
 
 interface EditState {
-  id: string; name: string; description: string; length: number | null; is_active: boolean;
+  id: string; name: string; description: string; length: number | null;
 }
 
 const MarkdownEditor = dynamic(() => import('@/components/MarkdownEditor').then(m => m.MarkdownEditor), { ssr: false });
@@ -48,7 +48,7 @@ export default function ManageContestsClient({ initialContests }: { initialConte
       const res = await fetch(`/api/admin/contests/${c.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load contest');
-      setEditing({ id: c.id, name: data.contest.name, description: data.contest.description || '', length: data.contest.length || null, is_active: !!c.is_active });
+      setEditing({ id: c.id, name: data.contest.name, description: data.contest.description || '', length: data.contest.length || null });
     } catch (e: unknown) { setActionMessage(e instanceof Error ? e.message : 'Failed to open editor'); }
     finally { setFetchingEditContent(false); }
   };
@@ -61,27 +61,14 @@ export default function ManageContestsClient({ initialContests }: { initialConte
       const res = await fetch(`/api/admin/contests/${editing.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ name: editing.name, description: editing.description, length: editing.length, is_active: editing.is_active }),
+        body: JSON.stringify({ name: editing.name, description: editing.description, length: editing.length }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save');
       setActionMessage('Contest updated');
-      setContests(prev => prev.map(c => c.id === editing.id ? { ...c, name: editing.name, is_active: editing.is_active, length: editing.length ?? c.length, updated_at: new Date().toISOString() } : c));
+      setContests(prev => prev.map(c => c.id === editing.id ? { ...c, name: editing.name, length: editing.length ?? c.length, updated_at: new Date().toISOString() } : c));
       closeEdit();
     } catch (e: unknown) { setActionMessage(e instanceof Error ? e.message : 'Failed to save'); }
-  };
-
-  const toggleActive = async (c: ContestRow) => {
-    try {
-      const res = await fetch(`/api/admin/contests/${c.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ is_active: !c.is_active }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to toggle');
-      setContests(prev => prev.map(row => row.id === c.id ? { ...row, is_active: !c.is_active } : row));
-    } catch (e: unknown) { setActionMessage(e instanceof Error ? e.message : 'Failed to toggle'); }
   };
 
   const deleteContest = async (c: ContestRow) => {
@@ -106,7 +93,6 @@ export default function ManageContestsClient({ initialContests }: { initialConte
       key: 'actions', header: 'Actions', className: 'w-[33%]', render: (r) => (
         <div className="flex gap-1.5">
           <button onClick={() => openEdit(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20">Edit</button>
-          <button onClick={() => toggleActive(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-warning/10 text-warning hover:bg-warning/20">{r.is_active ? 'Deactivate' : 'Activate'}</button>
           <button onClick={() => deleteContest(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20">Delete</button>
         </div>
       )
@@ -119,7 +105,7 @@ export default function ManageContestsClient({ initialContests }: { initialConte
         <div className="w-full space-y-6">
           <div>
             <h1 className="text-xl font-semibold text-foreground">Manage Contests</h1>
-            <p className="text-sm text-text-muted mt-1">Edit, activate/deactivate, or delete contests.</p>
+            <p className="text-sm text-text-muted mt-1">Edit or delete contests. Activation is managed by Managers.</p>
           </div>
 
           {actionMessage && (
@@ -162,17 +148,9 @@ export default function ManageContestsClient({ initialContests }: { initialConte
                     <SkeletonText lines={3} />
                   ) : (
                     <>
-                      <div className="grid md:grid-cols-3 gap-4 items-start">
-                        <div className="md:col-span-2 space-y-1.5">
-                          <label className="block text-sm font-medium text-foreground">Name</label>
-                          <input className={inputClass} value={editing.name} placeholder="Contest title" onChange={e => setEditing(s => s ? { ...s, name: e.target.value } : s)} />
-                        </div>
-                        <div className="space-y-2 pt-5 md:pt-0">
-                          <label className="inline-flex items-center gap-2 text-sm text-foreground">
-                            <input type="checkbox" className="h-4 w-4 rounded border-border bg-surface-2" checked={editing.is_active} onChange={e => setEditing(s => s ? { ...s, is_active: e.target.checked } : s)} />
-                            Active
-                          </label>
-                        </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-sm font-medium text-foreground">Name</label>
+                        <input className={inputClass} value={editing.name} placeholder="Contest title" onChange={e => setEditing(s => s ? { ...s, name: e.target.value } : s)} />
                       </div>
                       <div className="space-y-1.5">
                         <label className="block text-sm font-medium text-foreground">Length (minutes)</label>

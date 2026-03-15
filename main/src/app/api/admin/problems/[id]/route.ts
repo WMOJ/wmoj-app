@@ -50,7 +50,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (body.name !== undefined) updates.name = body.name;
   if (body.content !== undefined) updates.content = body.content;
   if (body.difficulty !== undefined) updates.difficulty = body.difficulty;
-  if (body.is_active !== undefined) updates.is_active = !!body.is_active;
   if (body.time_limit !== undefined) {
     if (typeof body.time_limit !== 'number' || isNaN(body.time_limit) || body.time_limit <= 0) {
       return NextResponse.json({ error: 'Time limit must be a positive number' }, { status: 400 });

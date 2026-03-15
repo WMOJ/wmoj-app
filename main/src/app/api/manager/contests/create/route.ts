@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const auth = await getManagerSupabase(request);
     if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
-    const { supabase } = auth;
+    const { supabase, user } = auth;
 
     const { data, error } = await supabase
       .from('contests')
@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
           name,
           description,
           length,
-          is_active: true
+          is_active: true,
+          created_by: user.id
         }
       ])
       .select()

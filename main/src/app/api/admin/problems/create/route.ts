@@ -95,9 +95,11 @@ export async function POST(request: NextRequest) {
           contest: contest || null,
           input,
           output,
+          is_active: false,
           time_limit: timeLimit || 5000,
           memory_limit: memoryLimit || 256,
-          difficulty: difficulty || 'Easy'
+          difficulty: difficulty || 'Easy',
+          created_by: authUser.id
         }
       ])
       .select()

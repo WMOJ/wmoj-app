@@ -152,7 +152,7 @@ export default function AdminDashboardClient({ initialSubmissions }: { initialSu
 
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider">All Submissions</h2>
+              <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider">Submissions to My Problems</h2>
               <span className="text-xs text-text-muted font-mono">{initialSubmissions.length} total</span>
             </div>
             {initialSubmissions.length > 0 ? (
