@@ -105,7 +105,7 @@ Records code submissions made by users.
 | Policy | What it means |
 |--------|---------------|
 | **Allow everyone to view submissions** | Anyone — logged in or not — can read all submissions. |
-| **Allow insert for authenticated** | Any logged-in user can submit. There is no restriction on whose submission it is attributed to — the application code is responsible for setting `user_id` correctly. |
+| **Allow insert for authenticated** | Despite its name, this policy applies to all roles including anonymous visitors — anyone can insert a submission with no login required and no ownership check. The application code is solely responsible for setting `user_id` correctly. |
 | **managers_all_submissions** | An active manager has full access — read, create, update, and delete any submission. |
 
 ---
@@ -154,7 +154,8 @@ Records a log of when users joined contests or other events.
 ### Anonymous Visitor (not logged in)
 
 - **Can read:** all problems, all contests, all contest participants, all submissions
-- **Cannot:** write anything, read user profiles, read join history
+- **Can write:** insert submissions (the submissions insert policy applies to all roles with no authentication check)
+- **Cannot:** write anything else, read user profiles, read join history
 
 ### Manager (logged in, has an active row in `managers`)
 
@@ -194,6 +195,6 @@ Broad control with some ownership restrictions:
 
 4. **Public read is broad.** Problems, contests, contest participants, and submissions are all publicly readable without login. User profiles and join history require a login to read.
 
-5. **Submissions have no ownership enforcement at the DB level.** The insert policy allows any authenticated user to insert a row with no ownership check. The application code is solely responsible for setting `user_id` correctly.
+5. **Submissions have no authentication or ownership enforcement at the DB level.** The insert policy applies to all roles including anonymous visitors — anyone can insert a submission row with no login required and no check that `user_id` matches the caller. The application code is solely responsible for setting `user_id` correctly.
 
 6. **No cross-admin control.** There is no policy that lets one admin manage another admin's row. Admin row management is self-service only.
