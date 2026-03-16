@@ -13,7 +13,7 @@ import IDEFrame from '@/components/layout/IDEFrame';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export default function HomeClient() {
-  const { user, signOut, userDashboardPath } = useAuth();
+  const { user, profile, signOut, userDashboardPath } = useAuth();
   const router = useRouter();
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -44,7 +44,7 @@ export default function HomeClient() {
             {user ? (
               <>
                 <span className="hidden md:inline-block px-4 py-1.5 text-sm text-green-300 border border-green-800/50 rounded-full bg-[#064e3b]/30 backdrop-blur-md">
-                  {user.user_metadata?.username || user.email}
+                  {profile?.username || user.user_metadata?.username || user.email}
                 </span>
                 <button
                   onClick={handleSignOut}

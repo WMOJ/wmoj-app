@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface IDEFrameProps {
     user: any;
@@ -10,6 +11,7 @@ interface IDEFrameProps {
 }
 
 const IDEFrame = ({ user, onSignOut }: IDEFrameProps) => {
+    const { profile } = useAuth();
     const [scrollProgress, setScrollProgress] = useState(0);
     const [windowHeight, setWindowHeight] = useState(0);
 
@@ -76,7 +78,7 @@ const IDEFrame = ({ user, onSignOut }: IDEFrameProps) => {
                         {user ? (
                             <>
                                 <span className="text-xs text-brand-primary font-mono hidden xl:inline-block">
-                                    {user.user_metadata?.username || user.email}
+                                    {profile?.username || user.user_metadata?.username || user.email}
                                 </span>
                                 <button onClick={onSignOut} className="text-xs text-text-muted hover:text-foreground transition-colors bg-foreground/5 px-3 py-1 rounded hover:bg-foreground/10">
                                     Sign Out
