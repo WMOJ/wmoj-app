@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export const Header = () => {
-    const { user, userRole, signOut } = useAuth();
+    const { user, profile, userRole, signOut } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
@@ -29,8 +29,8 @@ export const Header = () => {
 
     if (!user) return null;
 
-    const initial = (user.user_metadata?.username || user.email || "U").charAt(0).toUpperCase();
-    const displayName = user.user_metadata?.username || user.email;
+    const displayName = profile?.username || user.user_metadata?.username || user.email || "User";
+    const initial = displayName.charAt(0).toUpperCase();
 
     const switchButton = (() => {
         if (userRole === 'admin') {

@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function DashboardClient({ initialActivities }: { initialActivities: Activity[] }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const activities = initialActivities;
 
   const formatTimeAgo = (timestamp: string) => {
@@ -36,7 +36,7 @@ export default function DashboardClient({ initialActivities }: { initialActiviti
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-1 glass-panel p-6">
               <h1 className="text-xl font-semibold text-foreground mb-1">
-                Welcome back, <span className="text-brand-primary">{user?.user_metadata?.username || 'Programmer'}</span>
+                Welcome back, <span className="text-brand-primary">{profile?.username || user?.user_metadata?.username || 'Programmer'}</span>
               </h1>
               <p className="text-sm text-text-muted mb-5">
                 You&apos;ve solved {recentSolves} problems recently. Keep going!
