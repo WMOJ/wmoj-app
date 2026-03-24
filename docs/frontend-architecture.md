@@ -8,7 +8,7 @@ flowchart TD
     classDef route fill:#eceff1,stroke:#546e7a,stroke-width:1px,stroke-dasharray: 5 5;
 
     %% --- Root Layout & Contexts ---
-    subgraph RootLayout [app/layout.tsx (Server Component)]
+    subgraph RootLayout ["app/layout.tsx (Server Component)"]
         direction TB
         Themes[ThemeProvider]:::context
         Auth[AuthProvider<br/>Fetches session/user/profile on mount]:::context
@@ -19,7 +19,7 @@ flowchart TD
     end
 
     %% --- Routing Hierarchy (Server Components) ---
-    subgraph Routes [Next.js App Router (Server Boundaries)]
+    subgraph Routes ["Next.js App Router (Server Boundaries)"]
         direction TB
         
         PublicRoute[Public / Auth Routes<br/>/auth/login, /]:::route
