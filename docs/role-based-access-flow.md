@@ -63,22 +63,3 @@ flowchart TD
         RegularGuard -- No --> AuthRoutes[Render Standard Pages<br/>/dashboard, user submission views]:::Page
     end
 ```
-
-## Permissions Matrix
-
-This matrix formalizes what each user role is permitted to do across the application. Handled implicitly via UI layout masking and explicitly via API/Guard validation.
-
-| Feature / Action | Guest (Unauthenticated) | Regular User | Manager | Admin |
-| :--- | :---: | :---: | :---: | :---: |
-| **View Public Problems List** | ✅ | ✅ | ✅ | ✅ |
-| **View Public Contests List** | ✅ | ✅ | ✅ | ✅ |
-| **Authenticate (Login/Sign Up)** | ✅ | ❌ (Redirected) | ❌ (Redirected) | ❌ (Redirected) |
-| **Submit Code (`/api/problems/:id/submit`)** | ❌ (AuthPrompt) | ✅ | ✅ | ✅ |
-| **Join Active Contests** | ❌ | ✅ | ✅ | ✅ |
-| **View User Dashboard** | ❌ | ✅ | ✅ | ✅ |
-| **View Manager Dashboard** | ❌ | ❌ | ✅ | ❌ |
-| **Create/Manage Specific Contests** | ❌ | ❌ | ✅ | ✅ (All Contests) |
-| **Create/Manage Specific Problems** | ❌ | ❌ | ✅ | ✅ (All Problems) |
-| **View ALL User Submissions** | ❌ | ❌ | ✅ (Limited to scoped users) | ✅ (Unrestricted) |
-| **Use C++ Test Generator** | ❌ | ❌ | ✅ | ✅ |
-| **Generate/Access System Audits** | ❌ | ❌ | ❌ | ✅ |
