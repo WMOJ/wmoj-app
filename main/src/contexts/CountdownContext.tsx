@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface CountdownContextType {
   timeRemaining: number | null;
@@ -56,12 +57,6 @@ export function CountdownProvider({ children }: { children: React.ReactNode }) {
     if (!user?.id || !contestId) return;
 
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-      );
-
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) return;
 
@@ -138,12 +133,6 @@ export function CountdownProvider({ children }: { children: React.ReactNode }) {
     if (!contestId || !user?.id) return;
 
     try {
-      // Acquire a fresh access token
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-      );
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
 
@@ -178,12 +167,6 @@ export function CountdownProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-        );
-
         // Find active contest for user
         const { data: participant, error } = await supabase
           .from('contest_participants')
