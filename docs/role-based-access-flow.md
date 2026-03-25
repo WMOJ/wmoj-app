@@ -6,60 +6,46 @@ The following flowchart illustrates how varying user levels authenticate, how ro
 
 ```mermaid
 flowchart TD
-    %% Define Styles
+    %% Styles
     classDef Auth fill:#fff3e0,stroke:#e65100,stroke-width:2px;
     classDef Guard fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
     classDef Page fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef Action fill:#ffebee,stroke:#c62828,stroke-width:2px;
+    classDef Reject fill:#ffebee,stroke:#c62828,stroke-width:2px;
 
-    User([User]) --> AuthCheck{AuthContext initialized?}
+    %% Entry Point
+    Req([User Request]) --> RouteCheck[Requested Route]
+    
+    %% Layer 1: Authentication
+    RouteCheck --> AuthGuard{"AuthGuard\n(Validates Session)"}:::Guard
+    
+    AuthGuard -- "Unauthenticated" --> Login["Redirect: /auth/login"]:::Reject
+    AuthGuard -- "Authenticated" --> Context["AuthContext\n(Resolves Role)"]:::Auth
+    
+    %% Layer 2: Role Context
+    Context --> Role{"Role Evaluated?"}
+    Role -- "Loading" --> Spinner["Show Spinner"]
+    Role -- "Resolved" --> Routing
+    
+    %% Layer 3: Path Evaluation
+    Routing{"Target Path?"}
+    
+    %% Admin Path
+    Routing -- "/admin/*" --> AdminGuard{"AdminGuard\n(Requires 'admin')"}:::Guard
+    AdminGuard -- "Yes" --> AdminUI["Render Admin UI"]:::Page
+    AdminGuard -- "Unknown" --> APIAdmin["Verify via API"]:::Auth
+    AdminGuard -- "No" --> KickAdmin["Redirect: /dashboard"]:::Reject
+    APIAdmin -- "OK" --> AdminUI
+    APIAdmin -- "Fail" --> KickAdmin
 
-    %% Auth Flow
-    AuthCheck -- No --> Loading[Show Loader]
-    AuthCheck -- Yes --> LoggedIn{Is Signed In?}
-    
-    LoggedIn -- No --> PublicPages[Public Pages<br/>/auth/login, /problems, /contests]:::Page
-    LoggedIn -- Yes --> FetchRole[Fetch Profile & Role<br/>query users, admins, managers table]:::Auth
-    
-    FetchRole --> RoleDerived{Role Evaluated?}
-    
-    RoleDerived -->|Role: regular| DashRegular
-    RoleDerived -->|Role: admin| DashAdmin
-    RoleDerived -->|Role: manager| DashManager
-    
-    DashRegular[userRole = 'regular']:::Auth
-    DashAdmin[userRole = 'admin']:::Auth
-    DashManager[userRole = 'manager']:::Auth
-    
-    %% Guard Logic
-    DashRegular -.-> RegularGuard
-    DashAdmin -.-> AdminGuard
-    DashManager -.-> ManagerGuard
-    
-    %% Admin Guard
-    subgraph AdminGuardComponent [AdminGuard.tsx]
-        AdminGuard{Is userRole === 'admin' ?}:::Guard
-        AdminGuard -- Yes --> AdminRoutes[Render Admin Pages<br/>/admin/*]:::Page
-        AdminGuard -- No (e.g. regular) --> RedirectAdmin[Redirect to /dashboard]:::Action
-        AdminGuard -- Unknown --> ApiAdminCheck[Fallback: GET /api/admin/check]:::Auth
-        ApiAdminCheck -- 200 OK --> AdminRoutes
-        ApiAdminCheck -- 403 Forbidden --> RedirectAdmin
-    end
+    %% Manager Path
+    Routing -- "/manager/*" --> ManagerGuard{"ManagerGuard\n(Requires 'manager')"}:::Guard
+    ManagerGuard -- "Yes" --> ManagerUI["Render Manager UI"]:::Page
+    ManagerGuard -- "Unknown" --> APIManager["Verify via API"]:::Auth
+    ManagerGuard -- "No" --> KickManager["Redirect: /dashboard"]:::Reject
+    APIManager -- "OK" --> ManagerUI
+    APIManager -- "Fail" --> KickManager
 
-    %% Manager Guard
-    subgraph ManagerGuardComponent [ManagerGuard.tsx]
-        ManagerGuard{Is userRole === 'manager' ?}:::Guard
-        ManagerGuard -- Yes --> ManagerRoutes[Render Manager Pages<br/>/manager/*]:::Page
-        ManagerGuard -- No (e.g. regular, admin) --> RedirectManager[Redirect to /dashboard]:::Action
-        ManagerGuard -- Unknown --> ApiManagerCheck[Fallback: GET /api/manager/check]:::Auth
-        ApiManagerCheck -- 200 OK --> ManagerRoutes
-        ApiManagerCheck -- 403 Forbidden --> RedirectManager
-    end
-
-    %% Regular Only Guard
-    subgraph RegularGuardComponent [RegularOnlyGuard.tsx]
-        RegularGuard{Loading or No Role?}:::Guard
-        RegularGuard -- Yes --> WaitLoad[Show Workspace Prep Loader]:::Action
-        RegularGuard -- No --> AuthRoutes[Render Standard Pages<br/>/dashboard, user submission views]:::Page
-    end
+    %% Regular Path
+    Routing -- "/problems, /contests, etc." --> RegGuard{"RegularOnlyGuard\n(No Role Restriction)"}:::Guard
+    RegGuard -- "Workspace Ready" --> RegUI["Render Standard UI\n(Admins, Managers, Users allowed)"]:::Page
 ```
