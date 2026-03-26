@@ -1,48 +1,30 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { LoadingSpinner } from './AnimationWrapper';
 
 interface AdminGuardProps {
   children: React.ReactNode;
 }
 
+/**
+ * AdminGuard renders its children once the auth context has initialized.
+ *
+ * Access control is enforced server-side in every admin page.tsx before the
+ * client component is rendered, so this guard deliberately does NOT re-check
+ * the user's role in the browser. Doing so caused a race condition where a
+ * stale or not-yet-refreshed access token caused the browser-side role query
+ * to return 'regular', incorrectly redirecting admins on page reload.
+ *
+ * This guard exists only to:
+ *  1. Show a loading spinner while auth context initializes (avoids flash).
+ *  2. Return null if there is no authenticated user — the wrapping AuthGuard
+ *     handles the redirect to /auth/login.
+ */
 export function AdminGuard({ children }: AdminGuardProps) {
-  const { user, loading, userRole } = useAuth();
-  const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const { loading, user } = useAuth();
 
-  useEffect(() => {
-    if (loading) return; // Auth state not yet known
-
-    if (!user) {
-      // Not authenticated — redirect to login
-      router.replace('/auth/login');
-      setIsAdmin(false);
-      setCheckingAdmin(false);
-      return;
-    }
-
-    if (userRole === null) {
-      // Role resolution still in progress — keep showing loading state.
-      // This effect re-runs automatically when userRole changes.
-      return;
-    }
-
-    if (userRole === 'admin') {
-      setIsAdmin(true);
-      setCheckingAdmin(false);
-    } else {
-      setIsAdmin(false);
-      setCheckingAdmin(false);
-      router.replace('/dashboard');
-    }
-  }, [user, loading, router, userRole]);
-
-  if (loading || checkingAdmin || isAdmin === null) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -53,7 +35,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!user) return null;
 
   return <>{children}</>;
 }
