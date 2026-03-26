@@ -6,6 +6,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { ManagerGuard } from '@/components/ManagerGuard';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/Badge';
+import { toast } from '@/components/ui/Toast';
 import dynamic from 'next/dynamic';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -31,15 +32,57 @@ type Row = {
   timestamp: string;
 };
 
-export default function ManagerUserSubmissionsClient({
-  initialUsername,
-  initialSubmissions
-}: {
-  initialUsername: string;
+interface UserInfo {
+  id: string;
+  username: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface ManagerUserDetailClientProps {
+  user: UserInfo;
+  initialIsAdmin: boolean;
   initialSubmissions: Row[];
-}) {
+}
+
+export default function ManagerUserDetailClient({
+  user,
+  initialIsAdmin,
+  initialSubmissions,
+}: ManagerUserDetailClientProps) {
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
+  const [promoting, setPromoting] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<Row | null>(null);
+
+  const totalSubmissions = initialSubmissions.length;
+  const acceptedSubmissions = initialSubmissions.filter(s => s.passed).length;
+  const acceptanceRate = totalSubmissions > 0
+    ? Math.round((acceptedSubmissions / totalSubmissions) * 100)
+    : 0;
+
+  const displayName = user.username || user.email || 'User';
+  const avatarLetter = displayName[0].toUpperCase();
+
+  const handlePromote = async (promote: boolean) => {
+    setPromoting(true);
+    try {
+      const res = await fetch(`/api/manager/users/${user.id}/promote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promote }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setIsAdmin(data.isAdmin);
+      toast.success(promote ? 'User promoted to Admin' : 'User demoted to User');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Something went wrong');
+    } finally {
+      setPromoting(false);
+    }
+  };
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
@@ -142,40 +185,103 @@ export default function ManagerUserSubmissionsClient({
     <AuthGuard requireAuth allowAuthenticated>
       <ManagerGuard>
         <div className="w-full space-y-6">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <button onClick={() => router.push('/manager/usermanagement')} className="text-text-muted hover:text-foreground">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m15 18-6-6 6-6"/>
-                </svg>
-              </button>
-              <h1 className="text-xl font-semibold text-foreground">User Submissions</h1>
-            </div>
-            <p className="text-sm text-text-muted mt-1 ml-8">View all code submissions for <span className="font-semibold text-foreground">{initialUsername}</span>.</p>
+
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/manager/usermanagement')}
+              className="text-text-muted hover:text-foreground transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <h1 className="text-xl font-semibold text-foreground">User Details</h1>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-4 ml-8">
-              <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider">All Submissions</h2>
-              <span className="text-xs text-text-muted font-mono">{initialSubmissions.length} total</span>
+          {/* Profile card */}
+          <div className="bg-surface-1 border border-border rounded-lg p-5 flex items-start gap-5">
+            {/* Avatar */}
+            <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-2xl font-semibold text-brand-primary">{avatarLetter}</span>
             </div>
-            <div className="ml-8">
-              {initialSubmissions.length > 0 ? (
-                <DataTable<Row> columns={columns} rows={initialSubmissions} rowKey={(r) => r.id} />
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xl font-semibold text-foreground">{user.username || '—'}</p>
+              <p className="text-sm text-text-muted mt-0.5">{user.email}</p>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Badge variant={isAdmin ? 'info' : 'neutral'}>{isAdmin ? 'Admin' : 'User'}</Badge>
+                <Badge variant={user.is_active ? 'success' : 'warning'}>
+                  {user.is_active ? 'Active' : 'Disabled'}
+                </Badge>
+                <span className="text-xs text-text-muted">
+                  Member since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
+            </div>
+
+            {/* Promote / Demote action */}
+            <div className="flex-shrink-0">
+              {isAdmin ? (
+                <button
+                  onClick={() => handlePromote(false)}
+                  disabled={promoting}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-warning/10 text-warning hover:bg-warning/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {promoting ? 'Updating...' : 'Demote from Admin'}
+                </button>
               ) : (
-                <p className="text-sm text-text-muted py-6 text-center">No submissions found for this user.</p>
+                <button
+                  onClick={() => handlePromote(true)}
+                  disabled={promoting}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {promoting ? 'Updating...' : 'Promote to Admin'}
+                </button>
               )}
             </div>
           </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-surface-1 border border-border rounded-lg p-4">
+              <p className="text-xs text-text-muted uppercase tracking-wider">Total Submissions</p>
+              <p className="text-2xl font-semibold text-foreground mt-1 font-mono">{totalSubmissions}</p>
+            </div>
+            <div className="bg-surface-1 border border-border rounded-lg p-4">
+              <p className="text-xs text-text-muted uppercase tracking-wider">Accepted</p>
+              <p className="text-2xl font-semibold text-success mt-1 font-mono">{acceptedSubmissions}</p>
+            </div>
+            <div className="bg-surface-1 border border-border rounded-lg p-4">
+              <p className="text-xs text-text-muted uppercase tracking-wider">Acceptance Rate</p>
+              <p className="text-2xl font-semibold text-foreground mt-1 font-mono">{acceptanceRate}%</p>
+            </div>
+          </div>
+
+          {/* Submissions section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-foreground">Submissions</h2>
+              <span className="text-xs text-text-muted font-mono">{totalSubmissions} total</span>
+            </div>
+            {totalSubmissions > 0 ? (
+              <DataTable<Row> columns={columns} rows={initialSubmissions} rowKey={(r) => r.id} />
+            ) : (
+              <p className="text-sm text-text-muted py-6 text-center">No submissions found for this user.</p>
+            )}
+          </div>
+
         </div>
 
+        {/* Submission detail modal */}
         {selectedSubmission && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="w-full max-w-4xl bg-surface-1 border border-border rounded-lg flex flex-col max-h-[90vh]">
               <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                 <div>
                   <h2 className="text-base font-semibold text-foreground">Submission Details</h2>
-                  <p className="text-xs text-text-muted">by {initialUsername} • {selectedSubmission.problem} • {formatDate(selectedSubmission.timestamp)}</p>
+                  <p className="text-xs text-text-muted">by {displayName} • {selectedSubmission.problem} • {formatDate(selectedSubmission.timestamp)}</p>
                 </div>
                 <button onClick={() => setSelectedSubmission(null)} className="text-text-muted hover:text-foreground text-lg">×</button>
               </div>
@@ -258,6 +364,7 @@ export default function ManagerUserSubmissionsClient({
             </div>
           </div>
         )}
+
       </ManagerGuard>
     </AuthGuard>
   );

@@ -17,7 +17,7 @@ export default async function ManagerUserManagementPage() {
 
   if (!managerRow) redirect('/dashboard');
 
-  const [usersRes, submissionsRes] = await Promise.all([
+  const [usersRes, submissionsRes, adminsRes, managersRes] = await Promise.all([
     supabase
       .from('users')
       .select('id, username, email, is_active, created_at, updated_at')
@@ -25,11 +25,19 @@ export default async function ManagerUserManagementPage() {
       .limit(1000),
     supabase
       .from('submissions')
-      .select('user_id')
+      .select('user_id'),
+    supabase
+      .from('admins')
+      .select('id'),
+    supabase
+      .from('managers')
+      .select('id'),
   ]);
 
   const users = usersRes.data || [];
   const submissions = submissionsRes.data || [];
+  const adminIds = new Set((adminsRes.data || []).map((a: { id: string }) => a.id));
+  const managerIds = new Set((managersRes.data || []).map((m: { id: string }) => m.id));
 
   const submissionCounts = submissions.reduce((acc: Record<string, number>, sub: any) => {
     if (sub.user_id) {
@@ -38,10 +46,13 @@ export default async function ManagerUserManagementPage() {
     return acc;
   }, {});
 
-  const usersWithCounts = users.map(user => ({
-    ...user,
-    submissionsCount: submissionCounts[user.id] || 0
-  }));
+  const usersWithCounts = users
+    .filter(user => !managerIds.has(user.id))
+    .map(user => ({
+      ...user,
+      submissionsCount: submissionCounts[user.id] || 0,
+      isAdmin: adminIds.has(user.id),
+    }));
 
   return <ManagerUserManagementClient initialUsers={usersWithCounts} />;
 }

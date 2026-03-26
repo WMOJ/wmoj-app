@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getServerSupabase } from '@/lib/supabaseServer';
-import ManagerUserSubmissionsClient from './ManagerUserSubmissionsClient';
+import ManagerUserDetailClient from './ManagerUserDetailClient';
 
 type TestResult = {
   index: number; passed: boolean; stdout: string; stderr: string;
   exitCode: number | null; timedOut: boolean; expected: string; received: string;
 };
 
-export default async function ManagerUserSubmissionsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ManagerUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: targetUserId } = await params;
   const supabase = await getServerSupabase();
 
@@ -25,19 +25,27 @@ export default async function ManagerUserSubmissionsPage({ params }: { params: P
 
   const [
     { data: targetUser },
-    { data: subs }
+    { data: adminRow },
+    { data: subs },
   ] = await Promise.all([
     supabase
       .from('users')
-      .select('id, username, email')
+      .select('id, username, email, is_active, created_at')
+      .eq('id', targetUserId)
+      .maybeSingle(),
+    supabase
+      .from('admins')
+      .select('id')
       .eq('id', targetUserId)
       .maybeSingle(),
     supabase
       .from('submissions')
       .select('id, created_at, language, code, results, summary, status, problem_id')
       .eq('user_id', targetUserId)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false }),
   ]);
+
+  if (!targetUser) redirect('/manager/usermanagement');
 
   const rows = subs || [];
   const problemIds = [...new Set(rows.map(s => s.problem_id).filter(Boolean))];
@@ -69,8 +77,15 @@ export default async function ManagerUserSubmissionsPage({ params }: { params: P
   });
 
   return (
-    <ManagerUserSubmissionsClient
-      initialUsername={targetUser?.username || targetUser?.email || 'User'}
+    <ManagerUserDetailClient
+      user={{
+        id: targetUser.id,
+        username: targetUser.username,
+        email: targetUser.email,
+        is_active: targetUser.is_active,
+        created_at: targetUser.created_at,
+      }}
+      initialIsAdmin={!!adminRow}
       initialSubmissions={submissions}
     />
   );
