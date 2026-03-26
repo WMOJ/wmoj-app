@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { getUserRole, getUserDashboardPath } from '@/utils/userRole';
@@ -28,7 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userDashboardPath, setUserDashboardPath] = useState<string | null>(null);
-  const profileCreationInProgressRef = useRef(false);
 
   const fetchUserProfile = useCallback(async (userId: string) => {
     try {
@@ -55,8 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUserRole(role);
       setUserDashboardPath(dashboardPath);
-
-      console.log(`User role determined: ${role}, dashboard path: ${dashboardPath}`);
     } catch (error) {
       console.error('Error updating user role and path:', error);
       setUserRole('regular');
@@ -64,51 +61,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const createUserProfile = useCallback(async (user: User) => {
-    if (profileCreationInProgressRef.current) {
-      console.log('Profile creation already in progress, skipping...');
-      return;
-    }
-
-    profileCreationInProgressRef.current = true;
-    try {
-      console.log('Starting profile creation/update for:', user.email);
-      
+  // Idempotent user setup — safe to call concurrently from multiple paths.
+  // No ref guard; redundant parallel calls just produce harmless extra queries.
+  // Internally races against a timeout so guards are never blocked forever.
+  const ensureUserSetup = useCallback(async (currentUser: User) => {
+    const doSetup = async () => {
       // Update last login if user exists in specialized tables
-      const { data: adminUser } = await supabase.from('admins').select('id').eq('id', user.id).maybeSingle();
-      const { data: managerUser } = await supabase.from('managers').select('id').eq('id', user.id).maybeSingle();
+      const { data: adminUser } = await supabase.from('admins').select('id').eq('id', currentUser.id).maybeSingle();
+      const { data: managerUser } = await supabase.from('managers').select('id').eq('id', currentUser.id).maybeSingle();
 
       if (adminUser) {
-        await supabase.from('admins').update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', user.id);
+        await supabase.from('admins').update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', currentUser.id);
       } else if (managerUser) {
-        await supabase.from('managers').update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', user.id);
+        await supabase.from('managers').update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', currentUser.id);
       }
 
       // Always ensure/update base user profile
-      const { data: existingUser } = await supabase.from('users').select('id').eq('id', user.id).maybeSingle();
+      const { data: existingUser } = await supabase.from('users').select('id').eq('id', currentUser.id).maybeSingle();
 
       if (!existingUser) {
         await supabase.from('users').insert({
-          id: user.id,
-          username: user.user_metadata?.username || user.email?.split('@')[0] || 'user',
-          email: user.email || '',
-          created_at: user.created_at,
+          id: currentUser.id,
+          username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
+          email: currentUser.email || '',
+          created_at: currentUser.created_at,
           last_login: new Date().toISOString()
         });
       } else {
         await supabase.from('users').update({
           last_login: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        }).eq('id', user.id);
+        }).eq('id', currentUser.id);
       }
 
-      await updateUserRoleAndPath(user.id);
-      await fetchUserProfile(user.id);
+      await updateUserRoleAndPath(currentUser.id);
+      await fetchUserProfile(currentUser.id);
+    };
+
+    try {
+      // If DB queries hang, fall through after 8 seconds
+      await Promise.race([
+        doSetup(),
+        new Promise<void>(resolve => setTimeout(resolve, 8000)),
+      ]);
     } catch (error) {
-      console.error('Error in createUserProfile:', error);
-    } finally {
-      profileCreationInProgressRef.current = false;
+      console.error('Error in ensureUserSetup:', error);
     }
+
+    // Always guarantee role/path have values so guards never block forever
+    setUserRole(prev => prev ?? 'regular');
+    setUserDashboardPath(prev => prev ?? '/dashboard');
   }, [updateUserRoleAndPath, fetchUserProfile]);
 
   const refreshProfile = useCallback(async () => {
@@ -119,29 +121,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (!isMounted) return;
 
         if (error) console.error('getSession error:', error);
-        
+
         const currentUser = session?.user ?? null;
         setSession(session);
         setUser(currentUser);
 
+        // Clear loading as soon as the session is known.
+        // Profile/role fetching continues in the background;
+        // individual guards handle their own brief loading states.
+        setLoading(false);
+
         if (currentUser) {
-          await createUserProfile(currentUser);
+          await ensureUserSetup(currentUser);
         }
       } catch (e) {
         console.error('Auth initialization error:', e);
-      } finally {
         if (isMounted) setLoading(false);
       }
     };
 
     initializeAuth();
+
+    // Safety net: if getSession() itself hangs (e.g. stale navigator lock),
+    // force loading off after 5 seconds so the app is never permanently stuck.
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 5000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
@@ -151,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser);
 
       if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
-        await createUserProfile(currentUser);
+        await ensureUserSetup(currentUser);
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
         setUserRole(null);
@@ -162,8 +174,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      clearTimeout(safetyTimeout);
     };
-  }, [createUserProfile]);
+  }, [ensureUserSetup]);
 
   const signUp = async (email: string, password: string, username: string) => {
     const { error } = await supabase.auth.signUp({
