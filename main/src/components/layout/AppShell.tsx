@@ -1,10 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Sidebar } from "./Sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { ManagerSidebar } from "./ManagerSidebar";
 import { Header } from "./Header";
+import { UserNavbar } from "./UserNavbar";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
@@ -28,15 +28,28 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
     return (
         <div className="min-h-screen bg-background text-foreground">
             {showNavigation ? (
-                <div className="flex min-h-screen">
-                    {isAdminPage ? <AdminSidebar /> : isManagerPage ? <ManagerSidebar /> : <Sidebar />}
-                    <div className="flex-1 flex flex-col min-w-0 pl-60">
-                        <Header />
-                        <main className="flex-1 p-6">
-                            {children}
-                        </main>
+                isAdminPage ? (
+                    <div className="flex min-h-screen">
+                        <AdminSidebar />
+                        <div className="flex-1 flex flex-col min-w-0 pl-60">
+                            <Header />
+                            <main className="flex-1 p-6">{children}</main>
+                        </div>
                     </div>
-                </div>
+                ) : isManagerPage ? (
+                    <div className="flex min-h-screen">
+                        <ManagerSidebar />
+                        <div className="flex-1 flex flex-col min-w-0 pl-60">
+                            <Header />
+                            <main className="flex-1 p-6">{children}</main>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col min-h-screen w-full">
+                        <UserNavbar />
+                        <main className="flex-1 p-6">{children}</main>
+                    </div>
+                )
             ) : (
                 <main className="min-h-screen">
                     {children}
