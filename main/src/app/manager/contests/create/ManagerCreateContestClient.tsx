@@ -11,7 +11,6 @@ import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 
 const MarkdownEditor = dynamic(() => import('@/components/MarkdownEditor').then(m => m.MarkdownEditor), { ssr: false });
-const MarkdownRenderer = dynamic(() => import('@/components/MarkdownRenderer').then(m => m.MarkdownRenderer), { ssr: false });
 
 const inputClass = "w-full h-10 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20";
 
@@ -21,25 +20,46 @@ export default function ManagerCreateContestClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [formData, setFormData] = useState({ name: '', description: '', length: 60 });
+  const [formData, setFormData] = useState({
+    name: '', description: '', length: 60,
+    starts_at: '', ends_at: '', is_rated: false
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: name === 'length' ? parseInt(value) || 0 : value }));
   };
 
+  const handleCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.checked }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true); setError(''); setSuccess('');
+
+    if (formData.starts_at && formData.ends_at && new Date(formData.starts_at) >= new Date(formData.ends_at)) {
+      setError('Start date/time must be before end date/time');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/manager/contests/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          length: formData.length,
+          starts_at: formData.starts_at ? new Date(formData.starts_at).toISOString() : null,
+          ends_at: formData.ends_at ? new Date(formData.ends_at).toISOString() : null,
+          is_rated: formData.is_rated,
+        })
       });
       const json = await res.json();
       if (res.ok) {
         setSuccess('Contest created successfully!');
-        setFormData({ name: '', description: '', length: 60 });
+        setFormData({ name: '', description: '', length: 60, starts_at: '', ends_at: '', is_rated: false });
         setTimeout(() => router.push('/manager/dashboard'), 2000);
       } else { setError(json.error || 'Failed to create contest'); }
     } catch { setError('An unexpected error occurred'); }
@@ -70,6 +90,49 @@ export default function ManagerCreateContestClient() {
               <label htmlFor="length" className="block text-sm font-medium text-foreground">Duration (minutes) *</label>
               <input type="number" id="length" name="length" value={formData.length} onChange={handleChange} required min="1" max="1440" className={inputClass} placeholder="60" />
               <p className="text-xs text-text-muted">Contest duration in minutes (1–1440)</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4 max-w-lg">
+              <div className="space-y-1.5">
+                <label htmlFor="starts_at" className="block text-sm font-medium text-foreground">
+                  Start Date/Time <span className="text-text-muted font-normal text-xs">(optional)</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  id="starts_at"
+                  name="starts_at"
+                  value={formData.starts_at}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="ends_at" className="block text-sm font-medium text-foreground">
+                  End Date/Time <span className="text-text-muted font-normal text-xs">(optional)</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  id="ends_at"
+                  name="ends_at"
+                  value={formData.ends_at}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_rated"
+                  className="h-4 w-4 rounded border-border bg-surface-2"
+                  checked={formData.is_rated}
+                  onChange={handleCheckbox}
+                />
+                Rated Contest
+              </label>
+              <p className="text-xs text-text-muted">Rated contests will affect player rankings (not yet implemented).</p>
             </div>
 
             <div>

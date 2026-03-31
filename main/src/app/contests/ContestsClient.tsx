@@ -7,23 +7,43 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { RegularOnlyGuard } from '@/components/RegularOnlyGuard';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
-import { Contest } from '@/types/contest';
+import { Contest, ContestStatus } from '@/types/contest';
 import { Badge } from '@/components/ui/Badge';
+import { getContestStatus, formatTimeUntil } from '@/utils/contestStatus';
 
 interface ContestsClientProps {
   initialContests: Contest[];
   fetchError?: string;
 }
 
+const STATUS_VARIANT: Record<ContestStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
+  ongoing:  'success',
+  upcoming: 'info',
+  virtual:  'warning',
+  inactive: 'neutral',
+};
+
+const STATUS_LABEL: Record<ContestStatus, string> = {
+  ongoing:  'Ongoing',
+  upcoming: 'Upcoming',
+  virtual:  'Virtual',
+  inactive: 'Inactive',
+};
+
+const STATUS_SORT_ORDER: Record<ContestStatus, number> = {
+  ongoing: 3, upcoming: 2, virtual: 1, inactive: 0,
+};
+
 export default function ContestsClient({ initialContests, fetchError }: ContestsClientProps) {
   const { session } = useAuth();
   const [contests] = useState<Contest[]>(initialContests);
   const [joinedContestId, setJoinedContestId] = useState<string | null>(null);
   const [joinedHistory, setJoinedHistory] = useState<Set<string>>(new Set());
+  const [virtualContestIds, setVirtualContestIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
 
   const fetcher = (url: string) => fetch(url, { headers: { 'Authorization': `Bearer ${session?.access_token}` } }).then(r => r.json());
-  
+
   const { data: participation } = useSWR(session?.access_token ? '/api/contests/participation' : null, fetcher);
   const { data: joinHistory } = useSWR(session?.access_token ? '/api/contests/join-history' : null, fetcher);
 
@@ -34,6 +54,9 @@ export default function ContestsClient({ initialContests, fetchError }: Contests
   useEffect(() => {
     if (joinHistory?.contest_ids && Array.isArray(joinHistory.contest_ids)) {
       setJoinedHistory(new Set(joinHistory.contest_ids));
+    }
+    if (joinHistory?.virtual_contest_ids && Array.isArray(joinHistory.virtual_contest_ids)) {
+      setVirtualContestIds(new Set(joinHistory.virtual_contest_ids));
     }
   }, [joinHistory]);
 
@@ -52,13 +75,54 @@ export default function ContestsClient({ initialContests, fetchError }: Contests
         </div>
       )
     },
-    { key: 'length', header: 'Duration', className: 'w-[15%]', sortable: true, sortAccessor: (r) => r.length, render: (r) => <span className="text-sm text-foreground">{r.length} min</span> },
-    { key: 'status', header: 'Status', className: 'w-[15%]', sortable: true, sortAccessor: (r) => (r.is_active ? 1 : 0), render: (r) => <Badge variant={r.is_active ? 'success' : 'neutral'}>{r.is_active ? 'Active' : 'Inactive'}</Badge> },
-    { key: 'participants', header: 'Participants', className: 'w-[15%]', sortable: true, sortAccessor: (r) => r.participants_count ?? 0, render: (r) => <span className="text-sm text-text-muted">{r.participants_count ?? 0}</span> },
+    { key: 'length', header: 'Duration', className: 'w-[13%]', sortable: true, sortAccessor: (r) => r.length, render: (r) => <span className="text-sm text-foreground">{r.length} min</span> },
     {
-      key: 'actions', header: '', className: 'w-[20%] text-right', render: (r) => {
-        if (joinedContestId === r.id) return <Link href={`/contests/${r.id}`} className="text-sm font-medium text-brand-primary hover:text-brand-secondary">Continue →</Link>;
-        if (joinedHistory.has(r.id)) return <Link href={`/contests/${r.id}/leaderboard`} className="text-sm font-medium text-text-muted hover:text-foreground">Spectate</Link>;
+      key: 'status', header: 'Status', className: 'w-[15%]', sortable: true,
+      sortAccessor: (r) => STATUS_SORT_ORDER[getContestStatus(r)],
+      render: (r) => {
+        const s = getContestStatus(r);
+        const timeHint =
+          s === 'upcoming' && r.starts_at ? formatTimeUntil(r.starts_at) :
+          s === 'ongoing'  && r.ends_at   ? formatTimeUntil(r.ends_at)   :
+          null;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <Badge variant={STATUS_VARIANT[s]}>{STATUS_LABEL[s]}</Badge>
+            {timeHint && (
+              <span className="text-xs text-text-muted">
+                {s === 'upcoming' ? 'Starts ' : 'Ends '}{timeHint}
+              </span>
+            )}
+          </div>
+        );
+      }
+    },
+    { key: 'participants', header: 'Participants', className: 'w-[13%]', sortable: true, sortAccessor: (r) => r.participants_count ?? 0, render: (r) => <span className="text-sm text-text-muted">{r.participants_count ?? 0}</span> },
+    {
+      key: 'actions', header: '', className: 'w-[24%] text-right', render: (r) => {
+        const status = getContestStatus(r);
+
+        // User is currently in this contest
+        if (joinedContestId === r.id) {
+          return <Link href={`/contests/${r.id}`} className="text-sm font-medium text-brand-primary hover:text-brand-secondary">Continue →</Link>;
+        }
+
+        // Inactive contests — no action
+        if (status === 'inactive') {
+          return <span className="text-sm text-text-muted">Inactive</span>;
+        }
+
+        // User has join history for this contest
+        if (joinedHistory.has(r.id)) {
+          // All past joins were virtual and contest is still virtual → allow rejoin
+          if (status === 'virtual' && virtualContestIds.has(r.id)) {
+            return <Link href={`/contests/${r.id}/view`} className="text-sm font-medium text-brand-primary hover:text-brand-secondary">Rejoin →</Link>;
+          }
+          // Has a regular (non-virtual) join → spectate only
+          return <Link href={`/contests/${r.id}/leaderboard`} className="text-sm font-medium text-text-muted hover:text-foreground">Spectate</Link>;
+        }
+
+        // Default: view the contest info / join page
         return <Link href={`/contests/${r.id}/view`} className="text-sm font-medium text-brand-primary hover:text-brand-secondary">View →</Link>;
       }
     },
