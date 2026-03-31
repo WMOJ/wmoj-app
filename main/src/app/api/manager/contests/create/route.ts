@@ -3,7 +3,7 @@ import { getManagerSupabase } from '@/lib/managerAuth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, description, length } = await request.json();
+    const { name, description, length, starts_at, ends_at, is_rated } = await request.json();
 
     if (!name || !description || !length) {
       return NextResponse.json(
@@ -15,6 +15,13 @@ export async function POST(request: NextRequest) {
     if (length < 1 || length > 1440) {
       return NextResponse.json(
         { error: 'Length must be between 1 and 1440 minutes' },
+        { status: 400 }
+      );
+    }
+
+    if (starts_at && ends_at && new Date(starts_at) >= new Date(ends_at)) {
+      return NextResponse.json(
+        { error: 'Start date/time must be before end date/time' },
         { status: 400 }
       );
     }
@@ -31,7 +38,10 @@ export async function POST(request: NextRequest) {
           description,
           length,
           is_active: true,
-          created_by: user.id
+          created_by: user.id,
+          starts_at: starts_at || null,
+          ends_at: ends_at || null,
+          is_rated: is_rated ?? false
         }
       ])
       .select()

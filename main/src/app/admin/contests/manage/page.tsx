@@ -18,7 +18,7 @@ export default async function ManageContestsPage() {
   if (!adminRow) redirect('/dashboard');
   const { data } = await supabase
     .from('contests')
-    .select('id,name,length,is_active,updated_at,created_at')
+    .select('id,name,length,is_active,updated_at,created_at,starts_at,ends_at,is_rated')
     .eq('created_by', userId);
 
   return <ManageContestsClient initialContests={data || []} />;

@@ -8,19 +8,33 @@ import { useAuth } from '@/contexts/AuthContext';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/Badge';
 import { SkeletonText } from '@/components/LoadingStates';
+import { getContestStatus, toLocalDatetimeInput, fromLocalDatetimeInput } from '@/utils/contestStatus';
+import type { ContestStatus } from '@/types/contest';
 
 interface ContestRow {
   id: string; name: string; length: number | null;
   is_active: boolean | null; created_at: string; updated_at: string;
+  starts_at: string | null; ends_at: string | null; is_rated: boolean;
 }
 
 interface EditState {
   id: string; name: string; description: string; length: number | null;
+  starts_at: string; ends_at: string; is_rated: boolean;
 }
 
 const MarkdownEditor = dynamic(() => import('@/components/MarkdownEditor').then(m => m.MarkdownEditor), { ssr: false });
 
 const inputClass = "w-full h-9 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20";
+
+const STATUS_VARIANT: Record<ContestStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
+  ongoing: 'success', upcoming: 'info', virtual: 'warning', inactive: 'neutral',
+};
+const STATUS_LABEL: Record<ContestStatus, string> = {
+  ongoing: 'Ongoing', upcoming: 'Upcoming', virtual: 'Virtual', inactive: 'Inactive',
+};
+const STATUS_SORT_ORDER: Record<ContestStatus, number> = {
+  ongoing: 3, upcoming: 2, virtual: 1, inactive: 0,
+};
 
 export default function ManageContestsClient({ initialContests }: { initialContests: ContestRow[] }) {
   const { session } = useAuth();
@@ -48,7 +62,15 @@ export default function ManageContestsClient({ initialContests }: { initialConte
       const res = await fetch(`/api/admin/contests/${c.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load contest');
-      setEditing({ id: c.id, name: data.contest.name, description: data.contest.description || '', length: data.contest.length || null });
+      setEditing({
+        id: c.id,
+        name: data.contest.name,
+        description: data.contest.description || '',
+        length: data.contest.length || null,
+        starts_at: data.contest.starts_at ? toLocalDatetimeInput(data.contest.starts_at) : '',
+        ends_at: data.contest.ends_at ? toLocalDatetimeInput(data.contest.ends_at) : '',
+        is_rated: !!data.contest.is_rated,
+      });
     } catch (e: unknown) { setActionMessage(e instanceof Error ? e.message : 'Failed to open editor'); }
     finally { setFetchingEditContent(false); }
   };
@@ -57,16 +79,35 @@ export default function ManageContestsClient({ initialContests }: { initialConte
 
   const saveEdit = async () => {
     if (!editing) return;
+    if (editing.starts_at && editing.ends_at && new Date(editing.starts_at) >= new Date(editing.ends_at)) {
+      setActionMessage('Start date/time must be before end date/time');
+      return;
+    }
     try {
       const res = await fetch(`/api/admin/contests/${editing.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ name: editing.name, description: editing.description, length: editing.length }),
+        body: JSON.stringify({
+          name: editing.name,
+          description: editing.description,
+          length: editing.length,
+          starts_at: editing.starts_at ? fromLocalDatetimeInput(editing.starts_at) : null,
+          ends_at: editing.ends_at ? fromLocalDatetimeInput(editing.ends_at) : null,
+          is_rated: editing.is_rated,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save');
       setActionMessage('Contest updated');
-      setContests(prev => prev.map(c => c.id === editing.id ? { ...c, name: editing.name, length: editing.length ?? c.length, updated_at: new Date().toISOString() } : c));
+      setContests(prev => prev.map(c => c.id === editing.id ? {
+        ...c,
+        name: editing.name,
+        length: editing.length ?? c.length,
+        starts_at: editing.starts_at ? fromLocalDatetimeInput(editing.starts_at) : null,
+        ends_at: editing.ends_at ? fromLocalDatetimeInput(editing.ends_at) : null,
+        is_rated: editing.is_rated,
+        updated_at: new Date().toISOString(),
+      } : c));
       closeEdit();
     } catch (e: unknown) { setActionMessage(e instanceof Error ? e.message : 'Failed to save'); }
   };
@@ -86,11 +127,18 @@ export default function ManageContestsClient({ initialContests }: { initialConte
   type Row = ContestRow;
   const columns: Array<DataTableColumn<Row>> = [
     { key: 'name', header: 'Name', className: 'w-[25%]', sortable: true, sortAccessor: (r) => r.name.toLowerCase(), render: (r) => <span className="text-foreground font-medium">{r.name}</span> },
-    { key: 'length', header: 'Length', className: 'w-[15%]', sortable: true, sortAccessor: (r) => r.length ?? 0, render: (r) => <span className="text-text-muted font-mono">{r.length ? `${r.length} min` : '-'}</span> },
-    { key: 'status', header: 'Status', className: 'w-[12%]', sortable: true, sortAccessor: (r) => (r.is_active ? 1 : 0), render: (r) => <Badge variant={r.is_active ? 'success' : 'warning'}>{r.is_active ? 'Active' : 'Inactive'}</Badge> },
+    { key: 'length', header: 'Length', className: 'w-[12%]', sortable: true, sortAccessor: (r) => r.length ?? 0, render: (r) => <span className="text-text-muted font-mono">{r.length ? `${r.length} min` : '-'}</span> },
+    {
+      key: 'status', header: 'Status', className: 'w-[14%]', sortable: true,
+      sortAccessor: (r) => STATUS_SORT_ORDER[getContestStatus({ is_active: !!r.is_active, starts_at: r.starts_at, ends_at: r.ends_at })],
+      render: (r) => {
+        const s = getContestStatus({ is_active: !!r.is_active, starts_at: r.starts_at, ends_at: r.ends_at });
+        return <Badge variant={STATUS_VARIANT[s]}>{STATUS_LABEL[s]}</Badge>;
+      }
+    },
     { key: 'updated', header: 'Updated', className: 'w-[15%]', sortable: true, sortAccessor: (r) => new Date(r.updated_at).getTime(), render: (r) => <span className="text-text-muted text-sm font-mono">{new Date(r.updated_at).toLocaleDateString()}</span> },
     {
-      key: 'actions', header: 'Actions', className: 'w-[33%]', render: (r) => (
+      key: 'actions', header: 'Actions', className: 'w-[34%]', render: (r) => (
         <div className="flex gap-1.5">
           <button onClick={() => openEdit(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20">Edit</button>
           <button onClick={() => deleteContest(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20">Delete</button>
@@ -156,6 +204,42 @@ export default function ManageContestsClient({ initialContests }: { initialConte
                         <label className="block text-sm font-medium text-foreground">Length (minutes)</label>
                         <input type="number" className={`${inputClass} max-w-xs`} value={editing.length ?? ''} onChange={e => setEditing(s => s ? { ...s, length: e.target.value ? Number(e.target.value) : null } : s)} />
                         <p className="text-xs text-text-muted">Leave blank for unspecified length.</p>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="block text-sm font-medium text-foreground">
+                            Start Date/Time <span className="text-text-muted font-normal text-xs">(optional)</span>
+                          </label>
+                          <input
+                            type="datetime-local"
+                            className={inputClass}
+                            value={editing.starts_at}
+                            onChange={e => setEditing(s => s ? { ...s, starts_at: e.target.value } : s)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="block text-sm font-medium text-foreground">
+                            End Date/Time <span className="text-text-muted font-normal text-xs">(optional)</span>
+                          </label>
+                          <input
+                            type="datetime-local"
+                            className={inputClass}
+                            value={editing.ends_at}
+                            onChange={e => setEditing(s => s ? { ...s, ends_at: e.target.value } : s)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-border bg-surface-2"
+                            checked={editing.is_rated}
+                            onChange={e => setEditing(s => s ? { ...s, is_rated: e.target.checked } : s)}
+                          />
+                          Rated Contest
+                        </label>
+                        <p className="text-xs text-text-muted mt-1">Rated contests will affect player rankings (not yet implemented).</p>
                       </div>
                       <div className="space-y-1.5">
                         <label className="block text-sm font-medium text-foreground">Description (Markdown)</label>

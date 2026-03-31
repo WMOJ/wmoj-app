@@ -43,6 +43,9 @@ erDiagram
         timestamptz created_at
         timestamptz updated_at
         boolean is_active
+        timestamptz starts_at
+        timestamptz ends_at
+        boolean is_rated
         uuid created_by FK
     }
 
@@ -91,6 +94,7 @@ erDiagram
         uuid contest_id FK
         timestamptz joined_at
         timestamptz left_at
+        boolean is_virtual
     }
 
     countdown_timers {
@@ -109,7 +113,7 @@ erDiagram
 
     auth_users ||--o{ contests : "creates"
     auth_users ||--o{ problems : "creates"
-    
+
     auth_users ||--o{ contest_participants : "joins"
     contests ||--o{ contest_participants : "has"
 
@@ -120,7 +124,7 @@ erDiagram
     contests ||--o{ countdown_timers : "has"
 
     contests ||--o{ problems : "contains"
-    
+
     %% Note: submissions table foreign keys to users and problems weren't explicitly documented as DB constraints in the dump, but logically:
     users ||--o{ submissions : "makes"
     problems ||--o{ submissions : "receives"

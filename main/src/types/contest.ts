@@ -1,3 +1,5 @@
+export type ContestStatus = 'upcoming' | 'ongoing' | 'virtual' | 'inactive';
+
 export interface Contest {
   id: string;
   name: string;
@@ -5,10 +7,11 @@ export interface Contest {
   length: number;
   created_at: string | null;
   updated_at: string | null;
-  is_active: boolean; // reflects current activation status
+  is_active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_rated: boolean;
   // Added at runtime (not necessarily persisted columns) for listing enrichment
   participants_count?: number;
   problems_count?: number;
 }
-
-

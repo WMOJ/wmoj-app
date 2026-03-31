@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSupabaseFromToken } from '@/lib/supabaseServer';
+import { getContestStatus } from '@/utils/contestStatus';
 
 export async function POST(
   request: Request,
@@ -34,7 +35,7 @@ export async function POST(
     // Ensure contest is active and get contest details
     const { data: contest, error: contestErr } = await supabase
       .from('contests')
-      .select('id,is_active,length,created_by')
+      .select('id, is_active, length, created_by, starts_at, ends_at, is_rated')
       .eq('id', id)
       .maybeSingle();
 
@@ -45,6 +46,13 @@ export async function POST(
     if (!contest || !contest.is_active) {
       console.log('Contest not found or inactive:', { contest, is_active: contest?.is_active });
       return NextResponse.json({ error: 'Contest is not active' }, { status: 403 });
+    }
+
+    // Compute contest status to enforce join rules
+    const status = getContestStatus(contest);
+
+    if (status === 'upcoming') {
+      return NextResponse.json({ error: 'Contest has not started yet' }, { status: 403 });
     }
 
     // Check if admin is trying to join their own contest
@@ -85,7 +93,8 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to check join history' }, { status: 500 });
     }
 
-    if (historyData && historyData.length > 0) {
+    // Block rejoin for ongoing contests, but allow for virtual (free re-join)
+    if (historyData && historyData.length > 0 && status !== 'virtual') {
       return NextResponse.json({ error: 'You have already left this contest and cannot rejoin' }, { status: 403 });
     }
 
@@ -102,13 +111,16 @@ export async function POST(
       return NextResponse.json({ error: 'User already joined another contest' }, { status: 409 });
     }
 
+    const isVirtual = status === 'virtual';
+
     // Record join in history
     const { error: joinHistoryErr } = await supabase
       .from('join_history')
       .insert({
         user_id: userId,
         contest_id: id,
-        joined_at: new Date().toISOString()
+        joined_at: new Date().toISOString(),
+        is_virtual: isVirtual
       });
 
     if (joinHistoryErr) {
@@ -149,5 +161,3 @@ export async function POST(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-
