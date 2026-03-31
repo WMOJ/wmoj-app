@@ -29,17 +29,27 @@ export async function GET(
       return NextResponse.json({ leaderboard: [] });
     }
 
-    // Get all submissions for this contest
-    const { data: submissions, error: submissionsErr } = await supabase
-      .from('submissions')
-      .select(`
-        user_id,
-        problem_id,
-        results,
-        summary,
-        created_at
-      `)
-      .in('problem_id', problemIds);
+    // Fetch submissions and non-virtual participants in parallel
+    const [submissionsResult, regularParticipantsResult] = await Promise.all([
+      supabase
+        .from('submissions')
+        .select(`
+          user_id,
+          problem_id,
+          results,
+          summary,
+          created_at
+        `)
+        .in('problem_id', problemIds),
+      supabase
+        .from('join_history')
+        .select('user_id')
+        .eq('contest_id', id)
+        .eq('is_virtual', false)
+    ]);
+
+    const { data: submissions, error: submissionsErr } = submissionsResult;
+    const { data: regularParticipants } = regularParticipantsResult;
 
     if (submissionsErr) {
       console.log('Submissions fetch error:', submissionsErr);
@@ -47,6 +57,11 @@ export async function GET(
     }
 
     console.log('Submissions query result:', { submissions, submissionsErr, problemIds });
+
+    // Build a set of user IDs who joined regularly (non-virtual).
+    // If size > 0, filter to only those users. If size = 0 (old contest with no
+    // join_history rows), include everyone for backward compatibility.
+    const regularUserIds = new Set((regularParticipants || []).map(r => r.user_id));
 
     const totalProblems = problemIds.length;
 
@@ -61,6 +76,9 @@ export async function GET(
     submissions?.forEach(submission => {
       // Use Set for O(1) lookup instead of Array.includes O(n)
       if (!problemIdSet.has(submission.problem_id)) return;
+
+      // Exclude virtual participants from the leaderboard
+      if (regularUserIds.size > 0 && !regularUserIds.has(submission.user_id)) return;
 
       const userId = submission.user_id;
       if (!userScores.has(userId)) {
@@ -118,7 +136,7 @@ export async function GET(
         userData.problemScores.forEach(score => {
           if (score >= 0.999) solvedCount++; // Floating point tolerance
         });
-        
+
         return {
           user_id: userData.userId,
           username: user?.username || user?.email?.split('@')[0] || 'Unknown',

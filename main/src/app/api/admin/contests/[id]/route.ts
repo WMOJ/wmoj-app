@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { supabase } = auth;
   const { data, error } = await supabase
     .from('contests')
-    .select('id,name,description,length,is_active,created_at,updated_at')
+    .select('id,name,description,length,is_active,created_at,updated_at,starts_at,ends_at,is_rated')
     .eq('id', id)
     .maybeSingle();
   if (error) {
@@ -47,6 +47,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (body.name !== undefined) updates.name = body.name;
   if (body.description !== undefined) updates.description = body.description;
   if (body.length !== undefined) updates.length = body.length;
+  if (body.starts_at !== undefined) updates.starts_at = body.starts_at || null;
+  if (body.ends_at !== undefined) updates.ends_at = body.ends_at || null;
+  if (body.is_rated !== undefined) updates.is_rated = !!body.is_rated;
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
   }

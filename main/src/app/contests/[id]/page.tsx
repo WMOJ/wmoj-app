@@ -57,17 +57,28 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
   
   let leaderboard: any[] = [];
   if (problemIds.length > 0) {
-    const { data: submissions } = await supabase
-      .from('submissions')
-      .select('user_id, problem_id, results, summary, created_at')
-      .in('problem_id', problemIds);
-      
+    const [submissionsResult, regularParticipantsResult] = await Promise.all([
+      supabase
+        .from('submissions')
+        .select('user_id, problem_id, results, summary, created_at')
+        .in('problem_id', problemIds),
+      supabase
+        .from('join_history')
+        .select('user_id')
+        .eq('contest_id', id)
+        .eq('is_virtual', false)
+    ]);
+
+    const { data: submissions } = submissionsResult;
+    const regularUserIds = new Set((regularParticipantsResult.data || []).map((r: { user_id: string }) => r.user_id));
+
     if (submissions) {
       const problemIdSet = new Set(problemIds);
       const userScores = new Map<string, { totalScore: number; problemScores: Map<string, number>; userId: string }>();
 
       submissions.forEach(submission => {
         if (!problemIdSet.has(submission.problem_id)) return;
+        if (regularUserIds.size > 0 && !regularUserIds.has(submission.user_id)) return;
         const subUserId = submission.user_id;
         if (!userScores.has(subUserId)) {
           userScores.set(subUserId, { totalScore: 0, problemScores: new Map(), userId: subUserId });

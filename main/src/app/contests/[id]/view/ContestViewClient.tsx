@@ -8,7 +8,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCountdown } from '@/contexts/CountdownContext';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
+import { Badge } from '@/components/ui/Badge';
 import { toast } from '@/components/ui/Toast';
+import { getContestStatus, formatTimeUntil } from '@/utils/contestStatus';
+import type { ContestStatus } from '@/types/contest';
 
 const MarkdownRenderer = dynamic(() => import('@/components/MarkdownRenderer').then(m => m.MarkdownRenderer), { ssr: false });
 
@@ -18,6 +21,9 @@ interface ContestDetail {
   description: string | null;
   length: number;
   created_by: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_rated: boolean;
 }
 
 interface ContestViewClientProps {
@@ -25,12 +31,32 @@ interface ContestViewClientProps {
   initialContest?: ContestDetail;
 }
 
+
+const STATUS_VARIANT: Record<ContestStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
+  ongoing:  'success',
+  upcoming: 'info',
+  virtual:  'warning',
+  inactive: 'neutral',
+};
+
+const STATUS_LABEL: Record<ContestStatus, string> = {
+  ongoing:  'Ongoing',
+  upcoming: 'Upcoming',
+  virtual:  'Virtual',
+  inactive: 'Inactive',
+};
+
 export default function ContestViewClient({ error, initialContest }: ContestViewClientProps) {
   const router = useRouter();
   const { user, session, userRole } = useAuth();
   const { startCountdown } = useCountdown();
 
   const isOwnContest = userRole === 'admin' && user?.id === initialContest?.created_by;
+
+  // The view page only loads active contests, so is_active is always true here
+  const status: ContestStatus = initialContest
+    ? getContestStatus({ is_active: true, starts_at: initialContest.starts_at, ends_at: initialContest.ends_at })
+    : 'inactive';
 
   const [joining, setJoining] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
@@ -79,7 +105,13 @@ export default function ContestViewClient({ error, initialContest }: ContestView
               Back to Contests
             </Link>
 
-            <h1 className="text-xl font-semibold text-foreground">{initialContest.name}</h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-semibold text-foreground">{initialContest.name}</h1>
+              <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
+              {initialContest.is_rated && (
+                <Badge variant="info">Rated</Badge>
+              )}
+            </div>
 
             <div className="grid md:grid-cols-3 gap-6">
               <div className="md:col-span-2">
@@ -109,6 +141,30 @@ export default function ContestViewClient({ error, initialContest }: ContestView
                         Admins cannot join their own contests.
                       </p>
                     </>
+                  ) : status === 'upcoming' ? (
+                    <>
+                      <div className="w-full h-10 flex items-center justify-center text-sm text-text-muted border border-border rounded-lg bg-surface-2 cursor-not-allowed select-none">
+                        Not yet open
+                      </div>
+                      {initialContest.starts_at && (
+                        <p className="text-xs text-text-muted mt-3 text-center">
+                          Starts {formatTimeUntil(initialContest.starts_at) || 'very soon'}
+                        </p>
+                      )}
+                    </>
+                  ) : status === 'virtual' ? (
+                    <>
+                      <button
+                        onClick={handleJoinClick}
+                        disabled={joining}
+                        className="w-full h-10 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {joining ? <><LoadingSpinner size="sm" /><span>Joining...</span></> : 'Join (Virtual)'}
+                      </button>
+                      <p className="text-xs text-text-muted mt-3 text-center">
+                        Virtual participation. Does not affect the leaderboard.
+                      </p>
+                    </>
                   ) : (
                     <>
                       <button
@@ -118,9 +174,16 @@ export default function ContestViewClient({ error, initialContest }: ContestView
                       >
                         {joining ? <><LoadingSpinner size="sm" /><span>Joining...</span></> : 'Join Contest'}
                       </button>
-                      <p className="text-xs text-text-muted mt-3 text-center">
-                        By joining, you agree to the contest rules.
-                      </p>
+                      {initialContest.ends_at && formatTimeUntil(initialContest.ends_at) && (
+                        <p className="text-xs text-text-muted mt-3 text-center">
+                          Ends {formatTimeUntil(initialContest.ends_at)}
+                        </p>
+                      )}
+                      {(!initialContest.ends_at || !formatTimeUntil(initialContest.ends_at)) && (
+                        <p className="text-xs text-text-muted mt-3 text-center">
+                          By joining, you agree to the contest rules.
+                        </p>
+                      )}
                     </>
                   )}
                 </div>
