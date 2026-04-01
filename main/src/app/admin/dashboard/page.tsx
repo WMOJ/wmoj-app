@@ -15,7 +15,7 @@ export default async function AdminDashboardPage() {
     .eq('id', userId)
     .maybeSingle();
 
-  if (!adminRow) redirect('/dashboard');
+  if (!adminRow) redirect('/');
 
   // Fetch only this admin's problems
   const { data: myProblems } = await supabase

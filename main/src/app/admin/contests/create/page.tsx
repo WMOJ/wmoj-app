@@ -15,7 +15,7 @@ export default async function CreateContestPage() {
     .eq('id', userId)
     .maybeSingle();
 
-  if (!adminRow) redirect('/dashboard');
+  if (!adminRow) redirect('/');
 
   return <CreateContestClient />;
 }

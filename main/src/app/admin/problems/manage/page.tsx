@@ -15,7 +15,7 @@ export default async function ManageProblemsPage() {
     .eq('id', userId)
     .maybeSingle();
 
-  if (!adminRow) redirect('/dashboard');
+  if (!adminRow) redirect('/');
   
   const [
     { data: contestsData },

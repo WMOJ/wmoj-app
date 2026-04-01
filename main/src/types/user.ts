@@ -19,6 +19,6 @@ export const getUserDashboardPath = (userRole: UserRole): string => {
       return '/manager/dashboard';
     case 'regular':
     default:
-      return '/dashboard';
+      return '/';
   }
 };

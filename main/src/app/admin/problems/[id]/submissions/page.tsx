@@ -16,7 +16,7 @@ export default async function ProblemSubmissionsPage({ params }: { params: Promi
       .eq('id', userId)
       .maybeSingle();
 
-    if (!adminRow) redirect('/dashboard');
+    if (!adminRow) redirect('/');
 
     const [
         { data: problem },

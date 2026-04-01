@@ -69,7 +69,7 @@ export default function SignupClient() {
   const inputClass = "w-full h-10 px-3 bg-surface-2 border border-border rounded-lg text-sm text-foreground placeholder:text-text-muted/50 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 focus:outline-none";
 
   return (
-    <AuthGuard requireAuth={false} allowAuthenticated={false} redirectTo={userDashboardPath || "/dashboard"}>
+    <AuthGuard requireAuth={false} allowAuthenticated={false} redirectTo={userDashboardPath || "/"}>
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="fixed top-6 right-6 z-50">
           <ThemeToggle />

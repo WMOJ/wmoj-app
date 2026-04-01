@@ -1,31 +1,11 @@
 import { getServerSupabase } from '@/lib/supabaseServer';
-import { redirect } from 'next/navigation';
 import ContestLeaderboardClient from './LeaderboardClient';
 
 export default async function ContestLeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await getServerSupabase();
-  const { data: authData } = await supabase.auth.getUser();
-  const userId = authData?.user?.id;
 
-  if (!userId) {
-    redirect('/contests');
-  }
-
-  // Check access and load data concurrently
-  const [partResult, histResult, contestResult, problemsFullResult] = await Promise.all([
-    supabase
-      .from('contest_participants')
-      .select('contest_id')
-      .eq('user_id', userId)
-      .eq('contest_id', id)
-      .limit(1),
-    supabase
-      .from('join_history')
-      .select('contest_id')
-      .eq('user_id', userId)
-      .eq('contest_id', id)
-      .limit(1),
+  const [contestResult, problemsFullResult] = await Promise.all([
     supabase
       .from('contests')
       .select('name')
@@ -37,16 +17,9 @@ export default async function ContestLeaderboardPage({ params }: { params: Promi
       .eq('contest', id)
   ]);
 
-  const { data: part } = partResult;
-  const { data: hist } = histResult;
-
-  if ((!part || part.length === 0) && (!hist || hist.length === 0)) {
-    redirect('/contests');
-  }
-
   const { data: contestData, error: contestError } = contestResult;
   const contestName = contestData?.name || 'Contest';
-  
+
   if (contestError) {
     return <ContestLeaderboardClient error="Failed to load contest" contestName={contestName} />;
   }
@@ -54,7 +27,7 @@ export default async function ContestLeaderboardPage({ params }: { params: Promi
   // Load leaderboard
   const { data: problemsFullData } = problemsFullResult;
   const problemIds = problemsFullData?.map(p => p.id) || [];
-  
+
   let leaderboard: any[] = [];
   if (problemIds.length > 0) {
     const [submissionsResult, regularParticipantsResult] = await Promise.all([
@@ -84,7 +57,7 @@ export default async function ContestLeaderboardPage({ params }: { params: Promi
           userScores.set(subUserId, { totalScore: 0, problemScores: new Map(), userId: subUserId });
         }
         const userData = userScores.get(subUserId)!;
-        
+
         let score = 0;
         if (submission.summary && submission.summary.total > 0) {
           score = submission.summary.passed / submission.summary.total;
@@ -106,7 +79,7 @@ export default async function ContestLeaderboardPage({ params }: { params: Promi
         .from('users')
         .select('id, username, email')
         .in('id', userIds);
-        
+
       const userById = new Map(users?.map(u => [u.id, u]) || []);
       const totalProblems = problemIds.length;
 
@@ -133,7 +106,7 @@ export default async function ContestLeaderboardPage({ params }: { params: Promi
   }
 
   return (
-    <ContestLeaderboardClient 
+    <ContestLeaderboardClient
       contestName={contestName}
       initialLeaderboard={leaderboard}
     />

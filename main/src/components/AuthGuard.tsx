@@ -16,7 +16,7 @@ interface AuthGuardProps {
 export function AuthGuard({
   children,
   requireAuth = true,
-  redirectTo = '/dashboard',
+  redirectTo = '/',
   allowAuthenticated = false
 }: AuthGuardProps) {
   const { user, loading, userDashboardPath } = useAuth();

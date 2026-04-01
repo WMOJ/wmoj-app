@@ -33,7 +33,7 @@ export default function LoginClient() {
   };
 
   return (
-    <AuthGuard requireAuth={false} allowAuthenticated={false} redirectTo={userDashboardPath || "/dashboard"}>
+    <AuthGuard requireAuth={false} allowAuthenticated={false} redirectTo={userDashboardPath || "/"}>
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="fixed top-6 right-6 z-50">
           <ThemeToggle />

@@ -15,7 +15,7 @@ export default async function ManagerDashboardPage() {
     .eq('id', userId)
     .maybeSingle();
 
-  if (!managerRow) redirect('/dashboard');
+  if (!managerRow) redirect('/');
 
   const { data: subs, error: subsErr } = await supabase
     .from('submissions')

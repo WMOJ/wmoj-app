@@ -5,13 +5,10 @@ import { AdminSidebar } from "./AdminSidebar";
 import { ManagerSidebar } from "./ManagerSidebar";
 import { Header } from "./Header";
 import { UserNavbar } from "./UserNavbar";
-import { useAuth } from "@/contexts/AuthContext";
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
     const pathname = usePathname();
-    const { user } = useAuth();
 
-    const isLandingPage = pathname === "/";
     const isAuthPage = pathname.startsWith("/auth");
     const isAboutPage = pathname === "/about";
     const isAdminPage = pathname.startsWith("/admin");
@@ -23,7 +20,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         return <>{children}</>;
     }
 
-    const showNavigation = !isLandingPage && !isAuthPage && !isAboutPage && user;
+    const showNavigation = !isAuthPage && !isAboutPage;
 
     return (
         <div className="min-h-screen bg-background text-foreground">

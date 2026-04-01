@@ -21,7 +21,7 @@ export default async function ManagerUserDetailPage({ params }: { params: Promis
     .eq('id', userId)
     .maybeSingle();
 
-  if (!managerRow) redirect('/dashboard');
+  if (!managerRow) redirect('/');
 
   const [
     { data: targetUser },

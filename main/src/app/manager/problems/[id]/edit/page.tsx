@@ -16,7 +16,7 @@ export default async function ManagerEditProblemPage({ params }: { params: Promi
     .eq('id', userId)
     .maybeSingle();
 
-  if (!managerRow) redirect('/dashboard');
+  if (!managerRow) redirect('/');
 
   const [{ data: problemData, error: problemError }, { data: contestsData }] = await Promise.all([
     supabase

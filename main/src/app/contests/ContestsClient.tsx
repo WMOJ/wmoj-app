@@ -4,8 +4,6 @@ import { useEffect, useState, useMemo } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthGuard } from '@/components/AuthGuard';
-import { RegularOnlyGuard } from '@/components/RegularOnlyGuard';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { Contest, ContestStatus } from '@/types/contest';
 import { Badge } from '@/components/ui/Badge';
@@ -129,48 +127,44 @@ export default function ContestsClient({ initialContests, fetchError }: Contests
   ];
 
   return (
-    <AuthGuard requireAuth={true} allowAuthenticated={true}>
-      <RegularOnlyGuard>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-xl font-semibold text-foreground mb-1">Contests</h1>
-            <p className="text-sm text-text-muted">Browse and join available contests</p>
-          </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground mb-1">Contests</h1>
+        <p className="text-sm text-text-muted">Browse and join available contests</p>
+      </div>
 
-          {fetchError ? (
-            <div className="bg-error/10 border border-error/20 rounded-lg p-4">
-              <p className="text-sm text-error">{fetchError}</p>
+      {fetchError ? (
+        <div className="bg-error/10 border border-error/20 rounded-lg p-4">
+          <p className="text-sm text-error">{fetchError}</p>
+        </div>
+      ) : (
+        <div className="glass-panel p-6">
+          {contests.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-base font-medium text-foreground mb-1">No Contests Available</h3>
+              <p className="text-sm text-text-muted">Check back later.</p>
             </div>
           ) : (
-            <div className="glass-panel p-6">
-              {contests.length === 0 ? (
+            <>
+              <div className="mb-4">
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search contests..."
+                  className="w-full max-w-xs h-9 px-3 rounded-lg bg-surface-2 border border-border text-sm text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
+                />
+              </div>
+              {filteredContests.length === 0 ? (
                 <div className="text-center py-12">
-                  <h3 className="text-base font-medium text-foreground mb-1">No Contests Available</h3>
-                  <p className="text-sm text-text-muted">Check back later.</p>
+                  <p className="text-sm text-text-muted">No contests match your search.</p>
                 </div>
               ) : (
-                <>
-                  <div className="mb-4">
-                    <input
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      placeholder="Search contests..."
-                      className="w-full max-w-xs h-9 px-3 rounded-lg bg-surface-2 border border-border text-sm text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
-                    />
-                  </div>
-                  {filteredContests.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-sm text-text-muted">No contests match your search.</p>
-                    </div>
-                  ) : (
-                    <DataTable<Contest> columns={columns} rows={filteredContests} rowKey={(r) => r.id} headerVariant="gray" />
-                  )}
-                </>
+                <DataTable<Contest> columns={columns} rows={filteredContests} rowKey={(r) => r.id} headerVariant="gray" />
               )}
-            </div>
+            </>
           )}
         </div>
-      </RegularOnlyGuard>
-    </AuthGuard>
+      )}
+    </div>
   );
 }

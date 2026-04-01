@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error updating user role and path:', error);
       setUserRole('regular');
-      setUserDashboardPath('/dashboard');
+      setUserDashboardPath('/');
     }
   }, []);
 
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Always guarantee role/path have values so guards never block forever
     setUserRole(prev => prev ?? 'regular');
-    setUserDashboardPath(prev => prev ?? '/dashboard');
+    setUserDashboardPath(prev => prev ?? '/');
   }, [updateUserRoleAndPath, fetchUserProfile]);
 
   const refreshProfile = useCallback(async () => {

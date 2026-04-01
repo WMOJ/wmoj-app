@@ -15,7 +15,7 @@ export default async function ManageContestsPage() {
     .eq('id', userId)
     .maybeSingle();
 
-  if (!adminRow) redirect('/dashboard');
+  if (!adminRow) redirect('/');
   const { data } = await supabase
     .from('contests')
     .select('id,name,length,is_active,updated_at,created_at,starts_at,ends_at,is_rated')

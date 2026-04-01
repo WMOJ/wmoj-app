@@ -15,7 +15,7 @@ export default async function ManagerManageContestsPage() {
     .eq('id', userId)
     .maybeSingle();
 
-  if (!managerRow) redirect('/dashboard');
+  if (!managerRow) redirect('/');
 
   const { data } = await supabase
     .from('contests')

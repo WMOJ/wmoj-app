@@ -35,13 +35,13 @@ export const Header = () => {
     const switchButton = (() => {
         if (userRole === 'admin') {
             if (pathname.startsWith('/admin')) {
-                return { label: 'Switch to User View', path: '/dashboard' };
+                return { label: 'Switch to User View', path: '/' };
             }
             return { label: 'Switch to Admin Panel', path: '/admin/dashboard' };
         }
         if (userRole === 'manager') {
             if (pathname.startsWith('/manager')) {
-                return { label: 'Switch to User View', path: '/dashboard' };
+                return { label: 'Switch to User View', path: '/' };
             }
             return { label: 'Switch to Manager Panel', path: '/manager/dashboard' };
         }

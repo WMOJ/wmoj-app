@@ -15,7 +15,7 @@ export default async function ManagerUserManagementPage() {
     .eq('id', userId)
     .maybeSingle();
 
-  if (!managerRow) redirect('/dashboard');
+  if (!managerRow) redirect('/');
 
   const [usersRes, submissionsRes, adminsRes, managersRes] = await Promise.all([
     supabase

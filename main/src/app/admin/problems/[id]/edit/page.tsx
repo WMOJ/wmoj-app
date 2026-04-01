@@ -16,7 +16,7 @@ export default async function EditProblemPage({ params }: { params: Promise<{ id
     .eq('id', userId)
     .maybeSingle();
 
-  if (!adminRow) redirect('/dashboard');
+  if (!adminRow) redirect('/');
 
   // Fetch problem and contests in parallel
   const [{ data: problemData, error: problemError }, { data: contestsData }] = await Promise.all([

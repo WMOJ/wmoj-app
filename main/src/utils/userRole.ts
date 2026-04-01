@@ -64,6 +64,6 @@ export async function getUserDashboardPath(userId: string): Promise<string> {
       return '/manager/dashboard';
     case 'regular':
     default:
-      return '/dashboard';
+      return '/';
   }
 }

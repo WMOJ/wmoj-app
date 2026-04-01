@@ -10,15 +10,6 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const navItems = [
     {
-        label: "Dashboard",
-        href: "/dashboard",
-        icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-        ),
-    },
-    {
         label: "Problems",
         href: "/problems",
         icon: (
@@ -85,16 +76,16 @@ export const UserNavbar = () => {
         router.push("/");
     };
 
-    if (!user) return null;
+    const displayName = user
+        ? (profile?.username || user.user_metadata?.username || user.email || "User")
+        : null;
+    const initial = displayName ? displayName.charAt(0).toUpperCase() : null;
 
-    const displayName = profile?.username || user.user_metadata?.username || user.email || "User";
-    const initial = displayName.charAt(0).toUpperCase();
-
-    const switchButton = (() => {
+    const switchButton = user ? (() => {
         if (userRole === "admin") return { label: "Switch to Admin Panel", path: "/admin/dashboard" };
         if (userRole === "manager") return { label: "Switch to Manager Panel", path: "/manager/dashboard" };
         return null;
-    })();
+    })() : null;
 
     return (
         <header className="sticky top-0 z-40 h-14 border-b border-border bg-background flex items-center px-6 gap-6">
@@ -119,50 +110,67 @@ export const UserNavbar = () => {
 
             <ThemeToggle />
 
-            <div className="relative" ref={menuRef}>
-                <button
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface-2 text-sm"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
-                        {initial}
-                    </div>
-                    <span className="font-medium text-foreground hidden sm:block">
-                        {displayName}
-                    </span>
-                    <svg
-                        className={`w-3.5 h-3.5 text-text-muted transition-transform ${isMenuOpen ? "rotate-180" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+            {user ? (
+                <div className="relative" ref={menuRef}>
+                    <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface-2 text-sm"
                     >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-
-                {isMenuOpen && (
-                    <div className="absolute right-0 mt-1 w-48 bg-surface-1 border border-border rounded-lg py-1 shadow-lg">
-                        {switchButton && (
-                            <button
-                                onClick={() => {
-                                    setIsMenuOpen(false);
-                                    router.push(switchButton.path);
-                                }}
-                                className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface-2"
-                            >
-                                {switchButton.label}
-                            </button>
-                        )}
-                        <div className="h-px bg-border my-1" />
-                        <button
-                            onClick={handleSignOut}
-                            className="block w-full text-left px-4 py-2 text-sm text-error hover:bg-surface-2"
+                        <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
+                            {initial}
+                        </div>
+                        <span className="font-medium text-foreground hidden sm:block">
+                            {displayName}
+                        </span>
+                        <svg
+                            className={`w-3.5 h-3.5 text-text-muted transition-transform ${isMenuOpen ? "rotate-180" : ""}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
                         >
-                            Sign Out
-                        </button>
-                    </div>
-                )}
-            </div>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    {isMenuOpen && (
+                        <div className="absolute right-0 mt-1 w-48 bg-surface-1 border border-border rounded-lg py-1 shadow-lg">
+                            {switchButton && (
+                                <button
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        router.push(switchButton.path);
+                                    }}
+                                    className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface-2"
+                                >
+                                    {switchButton.label}
+                                </button>
+                            )}
+                            <div className="h-px bg-border my-1" />
+                            <button
+                                onClick={handleSignOut}
+                                className="block w-full text-left px-4 py-2 text-sm text-error hover:bg-surface-2"
+                            >
+                                Sign Out
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="flex items-center gap-2">
+                    <Link
+                        href="/auth/login"
+                        className="px-4 py-1.5 text-sm font-medium text-foreground border border-border rounded-lg hover:bg-surface-2 transition-colors"
+                    >
+                        Log In
+                    </Link>
+                    <Link
+                        href="/auth/signup"
+                        className="px-4 py-1.5 text-sm font-medium bg-brand-primary text-white rounded-lg hover:bg-brand-secondary transition-colors"
+                    >
+                        Sign Up
+                    </Link>
+                </div>
+            )}
         </header>
     );
 };
