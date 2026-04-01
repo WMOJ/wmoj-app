@@ -48,9 +48,6 @@ const NavItem = ({
     >
         <span className={isActive ? "text-brand-primary" : ""}>{icon}</span>
         <span className="hidden sm:block">{label}</span>
-        {isActive && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary rounded-t-full" />
-        )}
     </Link>
 );
 
@@ -88,8 +85,8 @@ export const UserNavbar = () => {
     })() : null;
 
     return (
-        <header className="sticky top-0 z-40 h-14 border-b border-border bg-background flex items-center px-6 gap-6">
-            <Logo size="md" />
+        <header className="sticky top-0 z-40 h-14 border-b border-border bg-surface-2 flex items-center px-6 gap-6">
+            <Logo size="md" className="mt-1" />
 
             <nav className="flex items-stretch h-14 gap-1">
                 {navItems.map((item) => {
