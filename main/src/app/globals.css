@@ -4,68 +4,38 @@
    WMOJ Design System v3.0 — Clean, Professional, Developer-Focused
    ========================================================================== */
 
-/* --- Color Tokens (Dark Mode Default) --- */
+/* --- Color Tokens (Light Mode Only) --- */
 :root {
-  --background: #0a0a0b;
-  --foreground: #e4e4e7;
-  --surface-1: #141416;
-  --surface-2: #1c1c1f;
-  --surface-3: #27272a;
-  --color-brand-primary: #10b981;
-  --color-brand-secondary: #34d399;
-  --color-success: #22c55e;
-  --color-error: #ef4444;
-  --color-warning: #f59e0b;
-  --font-heading: 'JetBrains Mono', 'Fira Code', monospace;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-  --border: #27272a;
-  --sidebar-border: #27272a;
-  --text-muted: #71717a;
-  --radius: 8px;
-}
-
-/* --- Inverted Navbar: light in dark mode, dark in light mode --- */
-[data-navbar] {
-  --background: #f4f4f5;
-  --foreground: #18181b;
-  --surface-1: #ffffff;
-  --surface-2: #e4e4e7;
-  --surface-3: #d4d4d8;
-  --border: #d4d4d8;
-  --text-muted: #52525b;
-  background-color: #f4f4f5;
-  color: #18181b;
-  border-bottom-color: #d4d4d8;
-}
-
-.light [data-navbar] {
-  --background: #0a0a0b;
-  --foreground: #e4e4e7;
-  --surface-1: #141416;
-  --surface-2: #1c1c1f;
-  --surface-3: #27272a;
-  --border: #27272a;
-  --text-muted: #a1a1aa;
-  background-color: #0a0a0b;
-  color: #e4e4e7;
-  border-bottom-color: #27272a;
-}
-
-/* --- Color Tokens (Light Mode) --- */
-.light {
   --background: #fafafa;
   --foreground: #18181b;
   --surface-1: #ffffff;
   --surface-2: #f4f4f5;
   --surface-3: #e4e4e7;
-  --border: #e4e4e7;
-  --sidebar-border: #e4e4e7;
-  --text-muted: #71717a;
   --color-brand-primary: #059669;
   --color-brand-secondary: #10b981;
   --color-success: #16a34a;
   --color-error: #dc2626;
   --color-warning: #ca8a04;
+  --font-heading: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --border: #e4e4e7;
+  --sidebar-border: #e4e4e7;
+  --text-muted: #71717a;
+  --radius: 8px;
+}
+
+/* --- Dark Navbar (always dark against the light app) --- */
+[data-navbar] {
+  --background: #27272a;
+  --foreground: #e4e4e7;
+  --surface-1: #3f3f46;
+  --surface-2: #3f3f46;
+  --surface-3: #52525b;
+  --border: #3f3f46;
+  --text-muted: #a1a1aa;
+  background-color: #27272a;
+  color: #e4e4e7;
+  border-bottom-color: #3f3f46;
 }
 
 /* --- Tailwind CSS v4 Theme Mapping --- */
@@ -169,11 +139,6 @@ body {
   background-color: var(--background) !important;
 }
 
-.light .code-editor-container .monaco-editor,
-.light .code-editor-container .monaco-editor .margin,
-.light .code-editor-container .monaco-editor-background {
-  background-color: #ffffff !important;
-}
 
 /* ==========================================================================
    Markdown Content — Readable prose for problem descriptions
