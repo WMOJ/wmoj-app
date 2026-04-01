@@ -57,10 +57,9 @@ export function Logo({
       {withText && (
         <span className={`flex flex-col items-start leading-none ${textSizeClass} font-semibold tracking-wide text-foreground ${textClassName}`}>
           <span>
-            <span className="text-brand-primary inline-block">
-              W
-            </span>
-            <span className="ml-0.5">MOJ</span>
+            <span>WM</span>
+            <span className="text-brand-primary">::</span>
+            <span>OJ</span>
           </span>
           {badge && (
             <span className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-brand-primary/80">
