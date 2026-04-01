@@ -24,6 +24,27 @@
   --radius: 8px;
 }
 
+/* --- Inverted Navbar: light in dark mode, dark in light mode --- */
+[data-navbar] {
+  --background: #f4f4f5;
+  --foreground: #18181b;
+  --surface-1: #ffffff;
+  --surface-2: #e4e4e7;
+  --surface-3: #d4d4d8;
+  --border: #d4d4d8;
+  --text-muted: #52525b;
+}
+
+.light [data-navbar] {
+  --background: #141416;
+  --foreground: #e4e4e7;
+  --surface-1: #1c1c1f;
+  --surface-2: #27272a;
+  --surface-3: #3f3f46;
+  --border: #3f3f46;
+  --text-muted: #a1a1aa;
+}
+
 /* --- Color Tokens (Light Mode) --- */
 .light {
   --background: #fafafa;
