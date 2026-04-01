@@ -85,7 +85,7 @@ export const UserNavbar = () => {
     })() : null;
 
     return (
-        <header data-navbar className="sticky top-0 z-40 h-14 border-b border-border bg-background flex items-center px-6 gap-6">
+        <header data-navbar className="sticky top-0 z-40 h-14 border-b flex items-center px-6 gap-6">
             <Logo size="md" className="mt-1" />
 
             <nav className="flex items-stretch h-14 gap-1">
