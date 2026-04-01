@@ -33,16 +33,22 @@
   --surface-3: #d4d4d8;
   --border: #d4d4d8;
   --text-muted: #52525b;
+  background-color: #f4f4f5;
+  color: #18181b;
+  border-bottom-color: #d4d4d8;
 }
 
 .light [data-navbar] {
-  --background: #141416;
+  --background: #0a0a0b;
   --foreground: #e4e4e7;
-  --surface-1: #1c1c1f;
-  --surface-2: #27272a;
-  --surface-3: #3f3f46;
-  --border: #3f3f46;
+  --surface-1: #141416;
+  --surface-2: #1c1c1f;
+  --surface-3: #27272a;
+  --border: #27272a;
   --text-muted: #a1a1aa;
+  background-color: #0a0a0b;
+  color: #e4e4e7;
+  border-bottom-color: #27272a;
 }
 
 /* --- Color Tokens (Light Mode) --- */
