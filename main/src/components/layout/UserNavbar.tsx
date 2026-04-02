@@ -111,7 +111,7 @@ export const UserNavbar = () => {
                 <div className="relative" ref={menuRef}>
                     <button
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface-2 text-sm"
+                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/10 text-sm"
                     >
                         <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
                             {initial}
@@ -130,22 +130,27 @@ export const UserNavbar = () => {
                     </button>
 
                     {isMenuOpen && (
-                        <div className="absolute right-0 mt-1 w-48 bg-surface-1 border border-border rounded-lg py-1 shadow-lg">
+                        <div data-surface="light" className="absolute right-0 mt-2 w-48 bg-surface-1 border border-border rounded-xl p-1.5 shadow-xl z-50 flex flex-col gap-0.5">
+                            <div className="px-3 py-2 mb-1 border-b border-border/50">
+                                <p className="text-xs font-medium text-text-muted">Signed in as</p>
+                                <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+                            </div>
+
                             {switchButton && (
                                 <button
                                     onClick={() => {
                                         setIsMenuOpen(false);
                                         router.push(switchButton.path);
                                     }}
-                                    className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface-2"
+                                    className="block w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 rounded-lg transition-colors"
                                 >
                                     {switchButton.label}
                                 </button>
                             )}
-                            <div className="h-px bg-border my-1" />
+                            
                             <button
                                 onClick={handleSignOut}
-                                className="block w-full text-left px-4 py-2 text-sm text-error hover:bg-surface-2"
+                                className="block w-full text-left px-3 py-2 text-sm font-medium text-error hover:bg-error/10 hover:text-error rounded-lg transition-colors mt-0.5"
                             >
                                 Sign Out
                             </button>

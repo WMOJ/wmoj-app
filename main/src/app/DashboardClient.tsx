@@ -1,15 +1,48 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
-import { Activity } from '@/types/activity';
 import Link from 'next/link';
-import DataTable from '@/components/DataTable';
+import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { NewsPost, CompactContest, CompactProblem } from './page';
+import { formatTimeUntil } from '@/utils/contestStatus';
 import { Badge } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
 
-export default function DashboardClient({ initialActivities }: { initialActivities: Activity[] }) {
-  const { user, profile } = useAuth();
-  const activities = initialActivities;
+interface DashboardClientProps {
+  initialNewsPosts: NewsPost[];
+  ongoingContests: CompactContest[];
+  upcomingContests: CompactContest[];
+  recentProblems: CompactProblem[];
+}
+
+export default function DashboardClient({ 
+  initialNewsPosts,
+  ongoingContests,
+  upcomingContests,
+  recentProblems 
+}: DashboardClientProps) {
+  const [posts, setPosts] = useState<NewsPost[]>(initialNewsPosts || []);
+  const [offset, setOffset] = useState(10);
+  const [hasMore, setHasMore] = useState((initialNewsPosts || []).length === 10);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    const { data } = await supabase
+      .from('news_posts')
+      .select('id, title, content, date_posted, users!inner(username)')
+      .order('date_posted', { ascending: false })
+      .range(offset, offset + 9);
+      
+    if (data && data.length > 0) {
+      setPosts([...posts, ...(data as unknown as NewsPost[])]);
+      setOffset(offset + data.length);
+      setHasMore(data.length === 10);
+    } else {
+      setHasMore(false);
+    }
+    setLoadingMore(false);
+  };
 
   const formatTimeAgo = (timestamp: string) => {
     const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
@@ -23,78 +56,135 @@ export default function DashboardClient({ initialActivities }: { initialActiviti
     return new Date(timestamp).toLocaleDateString();
   };
 
-  const totalSubmissions = activities.filter(a => a.type === 'submission').length;
-  const recentSolves = activities.filter(a => a.type === 'submission' && a.status === 'success').length;
+  const renderDifficulty = (difficulty: string) => {
+    const d = difficulty.toLowerCase();
+    if (d === 'easy') return <Badge variant="success">Easy</Badge>;
+    if (d === 'medium') return <Badge variant="warning">Medium</Badge>;
+    if (d === 'hard') return <Badge variant="error">Hard</Badge>;
+    return <Badge variant="neutral">{difficulty || 'Unknown'}</Badge>;
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome + Stats */}
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-1 glass-panel p-6">
-          {user ? (
-            <>
-              <h1 className="text-xl font-semibold text-foreground mb-1">
-                Welcome back, <span className="text-brand-primary">{profile?.username || user?.user_metadata?.username || 'Programmer'}</span>
-              </h1>
-              <p className="text-sm text-text-muted mb-5">
-                You&apos;ve solved {recentSolves} problems recently. Keep going!
-              </p>
-            </>
+    <div className="flex flex-col lg:flex-row gap-6">
+      
+      {/* Left Column: News */}
+      <div className="flex-[3] min-w-0">
+        <div className="glass-panel overflow-hidden">
+          <div className="bg-surface-2 px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">News</h2>
+          </div>
+          
+          {posts.length === 0 ? (
+            <div className="p-8 text-center text-text-muted text-sm">
+              No news posts available at the moment.
+            </div>
           ) : (
-            <>
-              <h1 className="text-xl font-semibold text-foreground mb-1">
-                Welcome to <span className="text-brand-primary">WMOJ</span>
-              </h1>
-              <p className="text-sm text-text-muted mb-5">
-                Browse problems and contests to get started.
-              </p>
-            </>
+            <div className="divide-y divide-border">
+              {posts.map((post) => {
+                const username = Array.isArray(post.users) ? post.users[0]?.username : post.users?.username;
+                return (
+                  <div key={post.id} className="p-6">
+                    <h3 className="text-xl font-semibold text-brand-primary mb-1">{post.title}</h3>
+                    <div className="text-sm text-text-muted mb-4 pb-4 border-b border-border/50">
+                      <span className="font-medium text-foreground">⭐ {username || 'Unknown'}</span> posted {formatTimeAgo(post.date_posted)}
+                    </div>
+                    <div className="prose dark:prose-invert max-w-none text-sm">
+                      <MarkdownRenderer content={post.content} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
-          <div className="flex gap-3">
-            <Link href="/problems" className="px-4 py-2 text-sm font-medium bg-brand-primary text-white rounded-lg hover:bg-brand-secondary">
-              Solve Problems
-            </Link>
-            <Link href="/contests" className="px-4 py-2 text-sm font-medium border border-border text-text-muted rounded-lg hover:text-foreground hover:bg-surface-2">
-              View Contests
-            </Link>
-          </div>
-        </div>
 
-        <div className="glass-panel p-6 w-full md:w-64 shrink-0">
-          <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-4">Quick Stats</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-lg bg-surface-2">
-              <div className="text-xl font-semibold text-foreground">{totalSubmissions}</div>
-              <div className="text-xs text-text-muted">Submissions</div>
+          {hasMore && (
+            <div className="px-6 py-4 border-t border-border bg-surface-1/50 flex justify-center">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="px-4 py-2 text-sm font-medium border border-border text-text-muted rounded-lg hover:text-foreground hover:bg-surface-2 transition-colors disabled:opacity-50"
+              >
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </button>
             </div>
-            <div className="p-3 rounded-lg bg-surface-2">
-              <div className="text-xl font-semibold text-brand-primary">{recentSolves}</div>
-              <div className="text-xs text-text-muted">Solved</div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Activity */}
-      <div className="glass-panel p-6">
-        <h2 className="text-base font-semibold text-foreground mb-4">Recent Activity</h2>
+      {/* Right Column: Sidebar */}
+      <div className="flex-1 min-w-0 space-y-6">
+        
+        {/* Ongoing Contests */}
+        <div className="glass-panel overflow-hidden">
+          <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Ongoing contests</h2>
+          </div>
+          <div className="divide-y divide-border">
+            {ongoingContests.length === 0 ? (
+              <div className="p-4 text-center text-text-muted text-xs">No ongoing contests.</div>
+            ) : (
+              ongoingContests.map(contest => (
+                <div key={contest.id} className="p-4 text-center">
+                  <Link href={`/contests/${contest.id}`} className="block text-sm font-semibold text-brand-primary hover:text-brand-secondary transition-colors mb-1">
+                    {contest.name}
+                  </Link>
+                  <div className="text-xs text-text-muted">
+                    Ends {contest.ends_at ? formatTimeUntil(contest.ends_at) : 'never'}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
-        <DataTable<Activity>
-          columns={[
-            { key: 'item', header: 'Item', className: 'w-[35%]', sortable: true, sortAccessor: (r) => r.item.toLowerCase(), render: (r) => <span className="text-foreground font-medium text-sm">{r.item}</span> },
-            { key: 'type', header: 'Type', className: 'w-[15%]', sortable: true, sortAccessor: (r) => r.type, render: (r) => <span className="text-text-muted text-xs">{r.type === 'submission' ? 'Submission' : 'Join'}</span> },
-            { key: 'status', header: 'Status', className: 'w-[15%]', sortable: true, sortAccessor: (r) => r.status, render: (r) => { const v = r.status === 'success' ? 'success' : r.status === 'warning' ? 'warning' : 'info'; const l = r.type === 'submission' ? (r.status === 'success' ? 'Solved' : 'Attempted') : 'Joined'; return <Badge variant={v as any}>{l}</Badge>; } },
-            { key: 'score', header: 'Score', className: 'w-[15%]', render: (r) => <span className="text-text-muted font-mono text-xs">{r.type === 'submission' && r.passed != null && r.total != null ? `${r.passed}/${r.total}` : '-'}</span> },
-            { key: 'when', header: 'When', className: 'w-[20%]', sortable: true, sortAccessor: (r) => new Date(r.timestamp).getTime(), render: (r) => <span className="text-text-muted text-xs">{formatTimeAgo(r.timestamp)}</span> },
-          ]}
-          rows={activities}
-          rowKey={(r) => r.id}
-          emptyState={
-            <EmptyState title="No activity yet" description="Start solving problems to see your activity here." action={<Link href="/problems" className="text-sm text-brand-primary hover:underline">Browse Problems</Link>} />
-          }
-          headerVariant="gray"
-        />
+        {/* Upcoming Contests */}
+        <div className="glass-panel overflow-hidden">
+          <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Upcoming contests</h2>
+          </div>
+          <div className="divide-y divide-border">
+            {upcomingContests.length === 0 ? (
+              <div className="p-4 text-center text-text-muted text-xs">No upcoming contests.</div>
+            ) : (
+              upcomingContests.map(contest => (
+                <div key={contest.id} className="p-4 text-center">
+                  <Link href={`/contests/${contest.id}`} className="block text-sm font-semibold text-brand-primary hover:text-brand-secondary transition-colors mb-1">
+                    {contest.name}
+                  </Link>
+                  <div className="text-xs text-text-muted">
+                    Starting {contest.starts_at ? formatTimeUntil(contest.starts_at) : 'soon'}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* New Problems */}
+        <div className="glass-panel overflow-hidden">
+          <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">New problems</h2>
+          </div>
+          <div className="divide-y divide-border">
+            {recentProblems.length === 0 ? (
+              <div className="p-4 text-center text-text-muted text-xs">No problems found.</div>
+            ) : (
+              recentProblems.map(problem => (
+                <div key={problem.id} className="p-4 flex items-center justify-between gap-3">
+                  <Link href={`/problems/${problem.id}`} className="block text-sm font-semibold text-brand-primary hover:text-brand-secondary transition-colors truncate">
+                    {problem.name}
+                  </Link>
+                  <div className="shrink-0">
+                    {renderDifficulty(problem.difficulty)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        
       </div>
+
     </div>
   );
 }

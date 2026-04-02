@@ -38,6 +38,18 @@
   border-bottom-color: #3f3f46;
 }
 
+/* --- Dropdown inside dark navbar — reset to light-mode tokens --- */
+[data-navbar] [data-surface="light"] {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --surface-1: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #e4e4e7;
+  --border: #e4e4e7;
+  --text-muted: #71717a;
+  color: #18181b;
+}
+
 /* --- Tailwind CSS v4 Theme Mapping --- */
 @theme inline {
   --color-background: var(--background);
