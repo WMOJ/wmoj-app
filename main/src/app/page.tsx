@@ -1,102 +1,97 @@
 import { getServerSupabase } from '@/lib/supabaseServer';
 import DashboardClient from './DashboardClient';
-import { Activity } from '@/types/activity';
+import { getContestStatus } from '@/utils/contestStatus';
+
+export interface NewsPost {
+  id: string;
+  title: string;
+  content: string;
+  date_posted: string;
+  users: { username: string } | { username: string }[];
+}
+
+export interface CompactContest {
+  id: string;
+  name: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+}
+
+export interface CompactProblem {
+  id: string;
+  name: string;
+  difficulty: string;
+  created_at: string;
+}
 
 export default async function HomePage() {
   const supabase = await getServerSupabase();
-  const { data: authData, error: authErr } = await supabase.auth.getUser();
 
-  let initialActivities: Activity[] = [];
+  let initialNewsPosts: NewsPost[] = [];
+  let ongoingContests: CompactContest[] = [];
+  let upcomingContests: CompactContest[] = [];
+  let recentProblems: CompactProblem[] = [];
 
-  if (authData?.user && !authErr) {
-    const userId = authData.user.id;
+  const [newsResult, contestsResult, problemsResult] = await Promise.all([
+    supabase
+      .from('news_posts')
+      .select('id, title, content, date_posted, users!inner(username)')
+      .order('date_posted', { ascending: false })
+      .limit(10),
+    supabase
+      .from('contests')
+      .select('id, name, starts_at, ends_at, is_active')
+      .eq('is_active', true),
+    supabase
+      .from('problems')
+      .select('id, name, difficulty, created_at')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(5)
+  ]);
 
-    const [submissionsResult, contestJoinsResult] = await Promise.all([
-      supabase
-        .from('submissions')
-        .select('id, problem_id, created_at, summary, problems(id, name, contest)')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(100),
-      supabase
-        .from('join_history')
-        .select('id, contest_id, joined_at, contests(id, name)')
-        .eq('user_id', userId)
-        .order('joined_at', { ascending: false })
-        .limit(100)
-    ]);
-
-    const { data: submissions } = submissionsResult;
-    const { data: contestJoins } = contestJoinsResult;
-
-    const contestIdSet = new Set<string>();
-    for (const sub of submissions || []) {
-      const problem = Array.isArray(sub.problems) ? sub.problems[0] : sub.problems;
-      const c = problem?.contest;
-      if (c) contestIdSet.add(c as string);
-    }
-
-    let contestNameById: Record<string, string> = {};
-    if (contestIdSet.size > 0) {
-      const { data: contestsData } = await supabase
-        .from('contests')
-        .select('id, name')
-        .in('id', Array.from(contestIdSet));
-      if (contestsData) {
-        contestNameById = contestsData.reduce((acc: Record<string, string>, c: { id: string; name: string }) => {
-          acc[c.id] = c.name;
-          return acc;
-        }, {});
-      }
-    }
-
-    const activities: Activity[] = [];
-
-    if (submissions) {
-      for (const sub of submissions) {
-        const problem = Array.isArray(sub.problems) ? sub.problems[0] : sub.problems;
-        const s = (sub.summary || {}) as { total?: number; passed?: number; failed?: number };
-        const total = Number(s.total ?? 0);
-        const passed = Number(s.passed ?? 0);
-        const failed = Number(s.failed ?? 0);
-        const solved = total > 0 && failed === 0 && passed === total;
-        const contestId = problem?.contest as string | null | undefined;
-        const contestName = contestId ? contestNameById[contestId] : undefined;
-
-        activities.push({
-          id: `sub-${sub.id}`,
-          type: 'submission',
-          action: solved ? 'Solved' : 'Attempted',
-          item: problem?.name || 'Unknown Problem',
-          itemId: sub.problem_id,
-          timestamp: sub.created_at,
-          status: solved ? 'success' : 'warning',
-          passed,
-          total,
-          contestId: contestId || null,
-          contestName: contestName || null,
-        } as Activity);
-      }
-    }
-
-    if (contestJoins) {
-      for (const join of contestJoins) {
-        const contest = Array.isArray(join.contests) ? join.contests[0] : join.contests;
-        activities.push({
-          id: `join-${join.id}`,
-          type: 'contest_join',
-          action: 'Joined',
-          item: contest?.name || 'Unknown Contest',
-          itemId: join.contest_id,
-          timestamp: join.joined_at,
-          status: 'info'
-        } as Activity);
-      }
-    }
-
-    activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    initialActivities = activities;
+  if (!newsResult.error && newsResult.data) {
+    initialNewsPosts = newsResult.data as unknown as NewsPost[];
   }
 
-  return <DashboardClient initialActivities={initialActivities} />;
+  if (!problemsResult.error && problemsResult.data) {
+    recentProblems = problemsResult.data as unknown as CompactProblem[];
+  }
+
+  if (!contestsResult.error && contestsResult.data) {
+    const allActive = contestsResult.data as unknown as CompactContest[];
+    allActive.forEach(c => {
+      const status = getContestStatus(c);
+      if (status === 'ongoing') ongoingContests.push(c);
+      if (status === 'upcoming') upcomingContests.push(c);
+    });
+
+    // Sort ongoing by ends_at ascending (ending soonest first)
+    ongoingContests.sort((a, b) => {
+      if (!a.ends_at) return 1;
+      if (!b.ends_at) return -1;
+      return new Date(a.ends_at).getTime() - new Date(b.ends_at).getTime();
+    });
+
+    // Sort upcoming by starts_at ascending (starting soonest first)
+    upcomingContests.sort((a, b) => {
+      if (!a.starts_at) return 1;
+      if (!b.starts_at) return -1;
+      return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+    });
+
+    // Limit to 5
+    ongoingContests = ongoingContests.slice(0, 5);
+    upcomingContests = upcomingContests.slice(0, 5);
+  }
+
+  return (
+    <DashboardClient 
+      initialNewsPosts={initialNewsPosts} 
+      ongoingContests={ongoingContests}
+      upcomingContests={upcomingContests}
+      recentProblems={recentProblems}
+    />
+  );
 }

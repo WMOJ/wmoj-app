@@ -40,20 +40,14 @@ export function Logo({
 
   const content = (
     <>
-      <span
-        className="relative flex items-center justify-center rounded-full border border-border bg-surface-1 shadow-sm"
-        style={{ width: wrapperSize, height: wrapperSize }}
-      >
-        <span className="absolute inset-0 rounded-full bg-surface-2" aria-hidden />
-        <Image
-          src="/logo.png"
-          alt="WMOJ logo"
-          width={imageSize}
-          height={imageSize}
-          priority={priority}
-          className="relative z-10 h-[70%] w-[70%] object-contain"
-        />
-      </span>
+      <Image
+        src="/logo.png"
+        alt="WMOJ logo"
+        width={wrapperSize}
+        height={wrapperSize}
+        priority={priority}
+        className="object-contain"
+      />
       {withText && (
         <span className={`flex flex-col items-start leading-none ${textSizeClass} font-semibold tracking-wide text-foreground ${textClassName}`}>
           <span>
