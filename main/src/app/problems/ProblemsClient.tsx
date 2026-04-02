@@ -8,8 +8,15 @@ import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { Problem } from '@/types/problem';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/Badge';
+import { HotProblem } from './page';
 
-export default function ProblemsClient({ initialProblems }: { initialProblems: Problem[] }) {
+export default function ProblemsClient({ 
+  initialProblems, 
+  hotProblems 
+}: { 
+  initialProblems: Problem[], 
+  hotProblems: HotProblem[] 
+}) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
 
@@ -48,15 +55,17 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
     return initialProblems.filter(p => p.name.toLowerCase().includes(q) || (p.content || '').toLowerCase().includes(q));
   }, [initialProblems, search]);
 
+  const renderDifficulty = (difficultyStr: string | null | undefined) => {
+    const diffStr = difficultyStr || 'Easy';
+    const variant = diffStr.toLowerCase() === 'hard' ? 'error' :
+      diffStr.toLowerCase() === 'medium' ? 'warning' : 'success';
+    return <Badge variant={variant as any}>{diffStr}</Badge>;
+  };
+
   const columns: Array<DataTableColumn<Problem>> = [
     { key: 'name', header: 'Problem', className: 'w-[50%]', sortable: true, sortAccessor: (r) => r.name.toLowerCase(), render: (r) => <span className="text-foreground font-medium text-sm">{r.name}</span> },
     {
-      key: 'difficulty', header: 'Difficulty', className: 'w-[15%]', render: (r) => {
-        const diffStr = r.difficulty || 'Easy';
-        const variant = diffStr.toLowerCase() === 'hard' ? 'error' :
-          diffStr.toLowerCase() === 'medium' ? 'warning' : 'success';
-        return <Badge variant={variant as any}>{diffStr}</Badge>;
-      }
+      key: 'difficulty', header: 'Difficulty', className: 'w-[15%]', render: (r) => renderDifficulty(r.difficulty)
     },
     {
       key: 'status', header: 'Status', className: 'w-[15%]', render: (r) => {
@@ -82,25 +91,70 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
         <p className="text-sm text-text-muted">Solve standalone problems to sharpen your skills</p>
       </div>
 
-      <div className="glass-panel p-6">
-        {initialProblems.length === 0 ? (
-          <div className="text-center py-12">
-            <h3 className="text-base font-medium text-foreground mb-1">No Problems Available</h3>
-            <p className="text-sm text-text-muted">Check back later for new problems.</p>
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Column: Problem List */}
+        <div className="flex-[3] min-w-0">
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">Problems</h2>
+            </div>
+            {initialProblems.length === 0 ? (
+              <div className="text-center py-12">
+                <h3 className="text-base font-medium text-foreground mb-1">No Problems Available</h3>
+                <p className="text-sm text-text-muted">Check back later for new problems.</p>
+              </div>
+            ) : filteredProblems.length === 0 ? (
+              <div className="text-center py-12 text-sm text-text-muted">
+                No problems match your search.
+              </div>
+            ) : (
+              <DataTable<Problem> columns={columns} rows={filteredProblems} rowKey={(r) => r.id} headerVariant="gray" />
+            )}
           </div>
-        ) : (
-          <>
-            <div className="mb-4">
+        </div>
+
+        {/* Right Column: Sidebar */}
+        <div className="flex-1 min-w-0 space-y-6">
+          
+          {/* Problem Search */}
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Problem search</h2>
+            </div>
+            <div className="p-4 bg-surface-1">
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search problems..."
-                className="w-full max-w-xs h-9 px-3 rounded-lg bg-surface-2 border border-border text-sm text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
+                className="w-full h-9 px-3 rounded-md bg-surface-2 border border-border text-sm text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
               />
             </div>
-            <DataTable<Problem> columns={columns} rows={filteredProblems} rowKey={(r) => r.id} headerVariant="gray" />
-          </>
-        )}
+          </div>
+
+          {/* Hot Problems */}
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Hot problems</h2>
+            </div>
+            <div className="divide-y divide-border">
+              {hotProblems.length === 0 ? (
+                <div className="p-4 text-center text-text-muted text-xs">No hot problems yet.</div>
+              ) : (
+                hotProblems.map((problem, i) => (
+                  <div key={problem.id} className="p-4 flex items-center justify-between gap-3 bg-surface-1 hover:bg-surface-2 transition-colors">
+                    <Link href={`/problems/${problem.id}`} className="block text-sm font-semibold text-brand-primary hover:text-brand-secondary transition-colors truncate">
+                      {i + 1}. {problem.name}
+                    </Link>
+                    <div className="shrink-0 flex items-center gap-2">
+                      {renderDifficulty(problem.difficulty)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
