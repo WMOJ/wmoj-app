@@ -2,70 +2,113 @@ import { getServerSupabase } from '@/lib/supabaseServer';
 import { Contest } from '@/types/contest';
 import ContestsClient from './ContestsClient';
 
-export default async function ContestsPage() {
+const PAST_PAGE_SIZE = 10;
+
+export default async function ContestsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const params = await searchParams;
+  const pastCurrentPage = Math.max(1, Number(params?.page) || 1);
+  const from = (pastCurrentPage - 1) * PAST_PAGE_SIZE;
+  const to = from + PAST_PAGE_SIZE - 1;
+
   const supabase = await getServerSupabase();
 
-  let initialContests: Contest[] = [];
+  let activeContests: Contest[] = [];
+  let pastContests: Contest[] = [];
+  let pastTotalPages = 1;
   let fetchError: string | undefined;
 
   try {
-    const { data: contests, error } = await supabase
+    const isoNow = new Date().toISOString();
+
+    // Active contests (ongoing + upcoming): ends_at in the future, no pagination needed
+    const { data: activeRaw, error: activeErr } = await supabase
       .from('contests')
       .select('*')
       .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .gt('ends_at', isoNow)
+      .order('starts_at', { ascending: true });
 
-    if (error) {
+    if (activeErr) {
       fetchError = 'Failed to fetch contests';
-    } else if (contests) {
-      const contestIds = contests.map(c => c.id);
+    } else {
+      // Past contests (virtual): is_active=true and ends_at in past, OR no time window set
+      const { data: pastRaw, count: pastCount, error: pastErr } = await supabase
+        .from('contests')
+        .select('*', { count: 'exact' })
+        .eq('is_active', true)
+        .or(`ends_at.lt.${isoNow},and(starts_at.is.null,ends_at.is.null)`)
+        .order('ends_at', { ascending: false, nullsFirst: false })
+        .range(from, to);
 
-      let participantsCountMap: Record<string, number> = {};
-      let problemsCountMap: Record<string, number> = {};
+      if (pastErr) {
+        fetchError = 'Failed to fetch contests';
+      } else {
+        pastTotalPages = Math.max(1, Math.ceil((pastCount ?? 0) / PAST_PAGE_SIZE));
 
-      if (contestIds.length > 0) {
-        // Fetch participants and problems concurrently
-        const [participantsResult, problemsResult] = await Promise.all([
-          supabase
-            .from('contest_participants')
-            .select('contest_id')
-            .in('contest_id', contestIds),
-          supabase
-            .from('problems')
-            .select('id,contest')
-            .in('contest', contestIds)
-            .eq('is_active', true)
-        ]);
+        const allContests = [...(activeRaw || []), ...(pastRaw || [])];
+        const contestIds = allContests.map(c => c.id);
 
-        const { data: participantsRaw, error: participantsErr } = participantsResult;
-        if (!participantsErr) {
-          interface ParticipantRow { contest_id: string }
-          (participantsRaw as ParticipantRow[] | null | undefined)?.forEach(({ contest_id }) => {
-            if (!contest_id) return;
-            participantsCountMap[contest_id] = (participantsCountMap[contest_id] || 0) + 1;
-          });
+        let participantsCountMap: Record<string, number> = {};
+        let problemsCountMap: Record<string, number> = {};
+
+        if (contestIds.length > 0) {
+          const [participantsResult, problemsResult] = await Promise.all([
+            supabase
+              .from('contest_participants')
+              .select('contest_id')
+              .in('contest_id', contestIds),
+            supabase
+              .from('problems')
+              .select('id,contest')
+              .in('contest', contestIds)
+              .eq('is_active', true),
+          ]);
+
+          const { data: participantsRaw, error: participantsErr } = participantsResult;
+          if (!participantsErr) {
+            interface ParticipantRow { contest_id: string }
+            (participantsRaw as ParticipantRow[] | null | undefined)?.forEach(({ contest_id }) => {
+              if (!contest_id) return;
+              participantsCountMap[contest_id] = (participantsCountMap[contest_id] || 0) + 1;
+            });
+          }
+
+          const { data: problemsRaw, error: problemsErr } = problemsResult;
+          if (!problemsErr) {
+            interface ProblemRow { id: string; contest: string | null }
+            (problemsRaw as ProblemRow[] | null | undefined)?.forEach(({ contest }) => {
+              if (!contest) return;
+              problemsCountMap[contest] = (problemsCountMap[contest] || 0) + 1;
+            });
+          }
         }
 
-        const { data: problemsRaw, error: problemsErr } = problemsResult;
-        if (!problemsErr) {
-          interface ProblemRow { id: string; contest: string | null }
-          (problemsRaw as ProblemRow[] | null | undefined)?.forEach(({ contest }) => {
-            if (!contest) return;
-            problemsCountMap[contest] = (problemsCountMap[contest] || 0) + 1;
-          });
-        }
+        const enrich = (c: Contest) => ({
+          ...c,
+          participants_count: participantsCountMap[c.id] || 0,
+          problems_count: problemsCountMap[c.id] || 0,
+        });
+
+        activeContests = (activeRaw || []).map(enrich);
+        pastContests = (pastRaw || []).map(enrich);
       }
-
-      initialContests = contests.map(c => ({
-        ...c,
-        participants_count: participantsCountMap[c.id] || 0,
-        problems_count: problemsCountMap[c.id] || 0,
-      }));
     }
   } catch (err) {
     console.error('[ContestsPage] Error fetching contests:', err);
     fetchError = 'Failed to fetch contests';
   }
 
-  return <ContestsClient initialContests={initialContests} fetchError={fetchError} />;
+  return (
+    <ContestsClient
+      activeContests={activeContests}
+      pastContests={pastContests}
+      pastTotalPages={pastTotalPages}
+      pastCurrentPage={pastCurrentPage}
+      fetchError={fetchError}
+    />
+  );
 }

@@ -4,14 +4,27 @@ import { Problem } from '@/types/problem';
 
 export type HotProblem = Problem & { submission_count: number };
 
-export default async function ProblemsPage() {
+const PAGE_SIZE = 20;
+
+export default async function ProblemsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const params = await searchParams;
+  const currentPage = Math.max(1, Number(params?.page) || 1);
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
   const supabase = await getServerSupabase();
-  const { data: problems, error } = await supabase
+
+  const { data: problems, count, error } = await supabase
     .from('problems')
-    .select('*')
+    .select('*', { count: 'exact' })
     .is('contest', null)
     .eq('is_active', true)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (error) {
     return (
@@ -22,33 +35,44 @@ export default async function ProblemsPage() {
   }
 
   const problemList = (problems as Problem[]) || [];
-  const problemIds = problemList.map(p => p.id);
-  
-  // Aggregate submission counts
-  let submissionCounts: Record<string, number> = {};
-  if (problemIds.length > 0) {
-    const { data: submissions } = await supabase
-      .from('submissions')
-      .select('problem_id')
-      .in('problem_id', problemIds);
-    
-    if (submissions) {
-      submissionCounts = submissions.reduce((acc: Record<string, number>, s) => {
-        const pid = s.problem_id as string;
-        if (pid) acc[pid] = (acc[pid] || 0) + 1;
-        return acc;
-      }, {});
-    }
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
+
+  // Hot problems: computed from all submissions (lightweight single-column fetch)
+  const { data: allSubs } = await supabase
+    .from('submissions')
+    .select('problem_id')
+    .not('problem_id', 'is', null);
+
+  const countMap: Record<string, number> = {};
+  for (const s of allSubs || []) {
+    const pid = s.problem_id as string;
+    if (pid) countMap[pid] = (countMap[pid] || 0) + 1;
   }
 
-  // Determine hot problems
-  const hotProblems: HotProblem[] = problemList
-    .map(p => ({
-      ...p,
-      submission_count: submissionCounts[p.id] || 0
-    }))
-    .sort((a, b) => b.submission_count - a.submission_count)
-    .slice(0, 5);
+  const topIds = Object.entries(countMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([id]) => id);
 
-  return <ProblemsClient initialProblems={problemList} hotProblems={hotProblems} />;
+  let hotProblems: HotProblem[] = [];
+  if (topIds.length > 0) {
+    const { data: hotData } = await supabase
+      .from('problems')
+      .select('*')
+      .in('id', topIds)
+      .is('contest', null)
+      .eq('is_active', true);
+    hotProblems = (hotData || [])
+      .map(p => ({ ...p, submission_count: countMap[p.id] || 0 }))
+      .sort((a, b) => b.submission_count - a.submission_count);
+  }
+
+  return (
+    <ProblemsClient
+      initialProblems={problemList}
+      hotProblems={hotProblems}
+      totalPages={totalPages}
+      currentPage={currentPage}
+    />
+  );
 }
