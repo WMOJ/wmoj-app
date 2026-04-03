@@ -67,7 +67,7 @@ This document outlines the Row Level Security (RLS) policies active on the Supab
 ## `users`
 | Policy Name | Action | Roles | Description |
 | :--- | :---: | :---: | :--- |
-| **users_select_all_authenticated** | `SELECT` | `public` | Allows logged-in users to view other user profiles. |
+| **users_select_all_public** | `SELECT` | `anon, authenticated` | Allows anyone, including unauthenticated users, to view user profiles. |
 | **Users can insert own profile** | `INSERT` | `public` | Allows a user to create their initial profile during signup. |
 | **Users can update own profile** | `UPDATE` | `public` | Allows users to edit their own profile settings. |
 | **Users can delete own profile** | `DELETE` | `public` | Allows users to delete their own account. |

@@ -1,22 +1,31 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import Pagination from '@/components/Pagination';
 import { Contest } from '@/types/contest';
 import { Badge } from '@/components/ui/Badge';
 import { getContestStatus, formatTimeUntil } from '@/utils/contestStatus';
 
 interface ContestsClientProps {
-  initialContests: Contest[];
+  activeContests: Contest[];
+  pastContests: Contest[];
+  pastTotalPages: number;
+  pastCurrentPage: number;
   fetchError?: string;
 }
 
-export default function ContestsClient({ initialContests, fetchError }: ContestsClientProps) {
+export default function ContestsClient({
+  activeContests,
+  pastContests,
+  pastTotalPages,
+  pastCurrentPage,
+  fetchError,
+}: ContestsClientProps) {
   const { session } = useAuth();
-  const [contests] = useState<Contest[]>(initialContests);
   const [joinedContestId, setJoinedContestId] = useState<string | null>(null);
   const [joinedHistory, setJoinedHistory] = useState<Set<string>>(new Set());
   const [virtualContestIds, setVirtualContestIds] = useState<Set<string>>(new Set());
@@ -39,12 +48,8 @@ export default function ContestsClient({ initialContests, fetchError }: Contests
     }
   }, [joinHistory]);
 
-  const ongoingContests = useMemo(() => contests.filter(c => getContestStatus(c) === 'ongoing'), [contests]);
-  const upcomingContests = useMemo(() => contests.filter(c => getContestStatus(c) === 'upcoming'), [contests]);
-  const pastContests = useMemo(() => contests.filter(c => {
-    const s = getContestStatus(c);
-    return s === 'virtual' || s === 'inactive';
-  }), [contests]);
+  const ongoingContests = activeContests.filter(c => getContestStatus(c) === 'ongoing');
+  const upcomingContests = activeContests.filter(c => getContestStatus(c) === 'upcoming');
 
   const columns: Array<DataTableColumn<Contest>> = [
     {
@@ -61,7 +66,7 @@ export default function ContestsClient({ initialContests, fetchError }: Contests
         const s = getContestStatus(r);
         const timeHint =
           s === 'upcoming' && r.starts_at ? formatTimeUntil(r.starts_at) :
-          s === 'ongoing'  && r.ends_at   ? formatTimeUntil(r.ends_at)   :
+          s === 'ongoing' && r.ends_at ? formatTimeUntil(r.ends_at) :
           null;
         return (
           <div className="flex flex-col gap-0.5">
@@ -113,6 +118,8 @@ export default function ContestsClient({ initialContests, fetchError }: Contests
     </div>
   );
 
+  const hasAnyContests = activeContests.length > 0 || pastContests.length > 0 || (pastTotalPages > 0);
+
   return (
     <div className="space-y-6">
       <div>
@@ -124,7 +131,7 @@ export default function ContestsClient({ initialContests, fetchError }: Contests
         <div className="bg-error/10 border border-error/20 rounded-lg p-4">
           <p className="text-sm text-error">{fetchError}</p>
         </div>
-      ) : contests.length === 0 ? (
+      ) : !hasAnyContests ? (
         <div className="glass-panel p-6">
           <div className="text-center py-12">
             <h3 className="text-base font-medium text-foreground mb-1">No Contests Available</h3>
@@ -135,7 +142,27 @@ export default function ContestsClient({ initialContests, fetchError }: Contests
         <>
           {renderSection('Ongoing', ongoingContests, 'No ongoing contests right now.')}
           {renderSection('Upcoming', upcomingContests, 'No upcoming contests scheduled.')}
-          {renderSection('Past Contests', pastContests, 'No past contests yet.')}
+
+          {/* Past Contests — paginated */}
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">Past Contests</h2>
+            </div>
+            {pastContests.length === 0 && pastTotalPages <= 1 ? (
+              <p className="text-sm text-text-muted px-4 py-4">No past contests yet.</p>
+            ) : (
+              <>
+                <div className="px-4 py-2 border-b border-border">
+                  <Pagination
+                    currentPage={pastCurrentPage}
+                    totalPages={pastTotalPages}
+                    buildHref={(p) => `?page=${p}`}
+                  />
+                </div>
+                <DataTable<Contest> columns={columns} rows={pastContests} rowKey={(r) => r.id} headerVariant="gray" />
+              </>
+            )}
+          </div>
         </>
       )}
     </div>

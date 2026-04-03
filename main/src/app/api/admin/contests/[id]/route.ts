@@ -42,6 +42,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const auth = await getAdminSupabase(request);
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const { supabase } = auth;
+
+  const { data: existing } = await supabase.from('contests').select('is_active').eq('id', id).maybeSingle();
+  if (existing?.is_active) return NextResponse.json({ error: 'Cannot edit an activated contest' }, { status: 403 });
+
   const body = await request.json();
   const updates: Record<string, unknown> = {};
   if (body.name !== undefined) updates.name = body.name;
@@ -71,6 +75,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const auth = await getAdminSupabase(request);
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const { supabase } = auth;
+
+  const { data: existing } = await supabase.from('contests').select('is_active').eq('id', id).maybeSingle();
+  if (existing?.is_active) return NextResponse.json({ error: 'Cannot delete an activated contest' }, { status: 403 });
 
   // First, decouple problems by setting their contest to null to make them standalone
   const { error: problemUpdateError } = await supabase

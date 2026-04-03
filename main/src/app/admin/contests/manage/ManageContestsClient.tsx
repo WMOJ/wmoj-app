@@ -138,12 +138,29 @@ export default function ManageContestsClient({ initialContests }: { initialConte
     },
     { key: 'updated', header: 'Updated', className: 'w-[15%]', sortable: true, sortAccessor: (r) => new Date(r.updated_at).getTime(), render: (r) => <span className="text-text-muted text-sm font-mono">{new Date(r.updated_at).toLocaleDateString()}</span> },
     {
-      key: 'actions', header: 'Actions', className: 'w-[34%]', render: (r) => (
-        <div className="flex gap-1.5">
-          <button onClick={() => openEdit(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20">Edit</button>
-          <button onClick={() => deleteContest(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20">Delete</button>
-        </div>
-      )
+      key: 'actions', header: 'Actions', className: 'w-[34%]', render: (r) => {
+        const isActive = !!r.is_active;
+        return (
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => openEdit(r)}
+              disabled={isActive}
+              title={isActive ? 'Cannot edit an activated contest' : undefined}
+              className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-brand-primary/10"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => deleteContest(r)}
+              disabled={isActive}
+              title={isActive ? 'Cannot delete an activated contest' : undefined}
+              className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-error/10"
+            >
+              Delete
+            </button>
+          </div>
+        );
+      }
     },
   ];
 

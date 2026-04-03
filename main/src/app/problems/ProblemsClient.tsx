@@ -5,17 +5,22 @@ import useSWR from 'swr';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import Pagination from '@/components/Pagination';
 import { Problem } from '@/types/problem';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/Badge';
 import { HotProblem } from './page';
 
-export default function ProblemsClient({ 
-  initialProblems, 
-  hotProblems 
-}: { 
-  initialProblems: Problem[], 
-  hotProblems: HotProblem[] 
+export default function ProblemsClient({
+  initialProblems,
+  hotProblems,
+  totalPages,
+  currentPage,
+}: {
+  initialProblems: Problem[],
+  hotProblems: HotProblem[],
+  totalPages: number,
+  currentPage: number,
 }) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -25,7 +30,7 @@ export default function ProblemsClient({
     const problemIds = initialProblems.map(p => p.id);
     const { data, error } = await supabase.from('submissions').select('problem_id, summary').eq('user_id', user.id).in('problem_id', problemIds);
     if (error) { console.error('Status load error:', error); return {}; }
-    
+
     const map: Record<string, 'solved' | 'attempted' | 'not_attempted'> = {};
     for (const id of problemIds) map[id] = 'not_attempted';
     const perProblem: Record<string, { any: boolean; solved: boolean }> = {};
@@ -46,7 +51,7 @@ export default function ProblemsClient({
     user?.id && initialProblems.length > 0 ? `problems-status-${user.id}` : null,
     fetcher
   );
-  
+
   const statusByProblem = statusMap || {};
 
   const filteredProblems = useMemo(() => {
@@ -103,19 +108,30 @@ export default function ProblemsClient({
                 <h3 className="text-base font-medium text-foreground mb-1">No Problems Available</h3>
                 <p className="text-sm text-text-muted">Check back later for new problems.</p>
               </div>
-            ) : filteredProblems.length === 0 ? (
-              <div className="text-center py-12 text-sm text-text-muted">
-                No problems match your search.
-              </div>
             ) : (
-              <DataTable<Problem> columns={columns} rows={filteredProblems} rowKey={(r) => r.id} headerVariant="gray" />
+              <>
+                <div className="px-4 py-2 border-b border-border">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    buildHref={(p) => `?page=${p}`}
+                  />
+                </div>
+                {filteredProblems.length === 0 ? (
+                  <div className="text-center py-12 text-sm text-text-muted">
+                    No problems match your search.
+                  </div>
+                ) : (
+                  <DataTable<Problem> columns={columns} rows={filteredProblems} rowKey={(r) => r.id} headerVariant="gray" />
+                )}
+              </>
             )}
           </div>
         </div>
 
         {/* Right Column: Sidebar */}
         <div className="flex-1 min-w-0 space-y-6">
-          
+
           {/* Problem Search */}
           <div className="glass-panel overflow-hidden">
             <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">

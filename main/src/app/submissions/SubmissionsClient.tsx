@@ -1,10 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Pagination from '@/components/Pagination';
 import type { SubmissionRow, SubmissionStats } from './page';
 
 interface Props {
   initialSubmissions: SubmissionRow[];
+  totalPages: number;
+  currentPage: number;
+  currentProblemSearch: string;
+  currentUserSearch: string;
+  currentStatusFilter: 'all' | 'passed' | 'failed';
   stats: SubmissionStats;
   fetchError?: string;
 }
@@ -51,31 +58,26 @@ function PieChart({ stats }: { stats: SubmissionStats }) {
   const r = 68;
   const total = stats.total;
 
-  // Build slices
-  const slices = useMemo(() => {
-    if (total === 0) return [];
-    let cumAngle = -Math.PI / 2; // start at top
-    return PIE_SLICES.filter((s) => stats[s.key] > 0).map((s) => {
-      const fraction = stats[s.key] / total;
-      const startAngle = cumAngle;
-      const endAngle = cumAngle + fraction * 2 * Math.PI;
-      cumAngle = endAngle;
+  let cumAngle = -Math.PI / 2;
+  const slices = total === 0 ? [] : PIE_SLICES.filter((s) => stats[s.key] > 0).map((s) => {
+    const fraction = stats[s.key] / total;
+    const startAngle = cumAngle;
+    const endAngle = cumAngle + fraction * 2 * Math.PI;
+    cumAngle = endAngle;
 
-      const x1 = cx + r * Math.cos(startAngle);
-      const y1 = cy + r * Math.sin(startAngle);
-      const x2 = cx + r * Math.cos(endAngle);
-      const y2 = cy + r * Math.sin(endAngle);
-      const largeArc = fraction > 0.5 ? 1 : 0;
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+    const largeArc = fraction > 0.5 ? 1 : 0;
 
-      const d =
-        fraction >= 0.9999
-          ? // Full circle — draw as two arcs
-            `M ${cx},${cy - r} A ${r},${r} 0 1,1 ${cx - 0.001},${cy - r} Z`
-          : `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
+    const d =
+      fraction >= 0.9999
+        ? `M ${cx},${cy - r} A ${r},${r} 0 1,1 ${cx - 0.001},${cy - r} Z`
+        : `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
 
-      return { ...s, d, count: stats[s.key] };
-    });
-  }, [stats, total]);
+    return { ...s, d, count: stats[s.key] };
+  });
 
   if (total === 0) {
     return <p className="text-sm text-text-muted text-center py-4">No submissions yet.</p>;
@@ -83,12 +85,7 @@ function PieChart({ stats }: { stats: SubmissionStats }) {
 
   return (
     <div className="relative flex flex-col items-center gap-3">
-      <svg
-        width={160}
-        height={160}
-        viewBox="0 0 160 160"
-        className="overflow-visible"
-      >
+      <svg width={160} height={160} viewBox="0 0 160 160" className="overflow-visible">
         {slices.map((slice) => (
           <path
             key={slice.key}
@@ -112,25 +109,19 @@ function PieChart({ stats }: { stats: SubmissionStats }) {
         ))}
       </svg>
 
-      {/* Tooltip */}
       {hovered && (() => {
         const slice = slices.find((s) => s.key === hovered);
         if (!slice) return null;
         return (
           <div
             className="absolute pointer-events-none z-20 bg-foreground text-background text-xs font-medium px-2 py-1 rounded-md shadow-lg whitespace-nowrap"
-            style={{
-              left: tooltipPos.x + 10,
-              top: tooltipPos.y - 28,
-              transform: 'translateX(-50%)',
-            }}
+            style={{ left: tooltipPos.x + 10, top: tooltipPos.y - 28, transform: 'translateX(-50%)' }}
           >
             {slice.label}: {slice.count}
           </div>
         );
       })()}
 
-      {/* Legend */}
       <div className="w-full space-y-1">
         {slices.map((slice) => (
           <div key={slice.key} className="flex items-center justify-between text-xs">
@@ -148,19 +139,58 @@ function PieChart({ stats }: { stats: SubmissionStats }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function SubmissionsClient({ initialSubmissions, stats, fetchError }: Props) {
-  const [problemSearch, setProblemSearch] = useState('');
-  const [userSearch, setUserSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'failed'>('all');
+export default function SubmissionsClient({
+  initialSubmissions,
+  totalPages,
+  currentPage,
+  currentProblemSearch,
+  currentUserSearch,
+  currentStatusFilter,
+  stats,
+  fetchError,
+}: Props) {
+  const router = useRouter();
+  const [problemInput, setProblemInput] = useState(currentProblemSearch);
+  const [userInput, setUserInput] = useState(currentUserSearch);
+  const problemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filtered = useMemo(() => {
-    return initialSubmissions.filter((s) => {
-      if (problemSearch && !s.problem_name.toLowerCase().includes(problemSearch.toLowerCase())) return false;
-      if (userSearch && !s.username.toLowerCase().includes(userSearch.toLowerCase())) return false;
-      if (statusFilter !== 'all' && s.status !== statusFilter) return false;
-      return true;
-    });
-  }, [initialSubmissions, problemSearch, userSearch, statusFilter]);
+  const buildParams = (overrides: Record<string, string>) => {
+    const p = new URLSearchParams();
+    const problem = 'problem' in overrides ? overrides.problem : currentProblemSearch;
+    const user = 'user' in overrides ? overrides.user : currentUserSearch;
+    const status = 'status' in overrides ? overrides.status : currentStatusFilter;
+    const page = 'page' in overrides ? overrides.page : '1';
+    if (problem) p.set('problem', problem);
+    if (user) p.set('user', user);
+    if (status && status !== 'all') p.set('status', status);
+    if (page && page !== '1') p.set('page', page);
+    return p.toString();
+  };
+
+  const handleProblemChange = (value: string) => {
+    setProblemInput(value);
+    if (problemTimerRef.current) clearTimeout(problemTimerRef.current);
+    problemTimerRef.current = setTimeout(() => {
+      router.replace(`?${buildParams({ problem: value.trim() })}`);
+    }, 300);
+  };
+
+  const handleUserChange = (value: string) => {
+    setUserInput(value);
+    if (userTimerRef.current) clearTimeout(userTimerRef.current);
+    userTimerRef.current = setTimeout(() => {
+      router.replace(`?${buildParams({ user: value.trim() })}`);
+    }, 300);
+  };
+
+  const handleStatusChange = (value: 'all' | 'passed' | 'failed') => {
+    router.replace(`?${buildParams({ status: value })}`);
+  };
+
+  const buildHref = (page: number) => {
+    return `?${buildParams({ page: String(page) })}`;
+  };
 
   const inputClass =
     'w-full h-9 px-3 rounded-md bg-surface-2 border border-border text-sm text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary';
@@ -169,7 +199,6 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-foreground">Submissions</h1>
-        
       </div>
 
       {fetchError && (
@@ -182,11 +211,13 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
         {/* ── Main Table ───────────────────────────────────────────────── */}
         <div className="flex-[3] min-w-0">
           <div className="glass-panel overflow-hidden">
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">
-                {filtered.length} submission{filtered.length !== 1 ? 's' : ''}
-              </span>
+            {/* Pagination row */}
+            <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                buildHref={buildHref}
+              />
             </div>
 
             <div className="overflow-x-auto">
@@ -205,14 +236,14 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filtered.length === 0 ? (
+                  {initialSubmissions.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="px-4 py-10 text-center text-text-muted text-sm">
                         No submissions match your filters.
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((sub) => {
+                    initialSubmissions.map((sub) => {
                       const allPassed = sub.passed === sub.total && sub.total > 0;
                       const somePassed = sub.passed > 0 && !allPassed;
 
@@ -224,7 +255,6 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
 
                       return (
                         <tr key={sub.id} className="hover:bg-surface-2 transition-colors">
-                          {/* Score block */}
                           <td className="px-3 py-3 align-middle">
                             <div className={`rounded-md px-2 py-1.5 text-center ${scoreColorClass}`}>
                               <div className="text-xs font-mono font-semibold leading-tight">
@@ -232,8 +262,6 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
                               </div>
                             </div>
                           </td>
-
-                          {/* Problem + User + Time */}
                           <td className="px-4 py-3 align-middle">
                             <div className="text-sm font-medium text-foreground leading-tight">
                               {sub.problem_name}
@@ -244,8 +272,6 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
                               <span>{formatRelativeTime(sub.created_at)}</span>
                             </div>
                           </td>
-
-                          {/* Language */}
                           <td className="px-4 py-3 align-middle text-right">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-surface-2 text-text-muted border border-border">
                               {languageLabel(sub.language)}
@@ -270,8 +296,8 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
             <div className="space-y-1">
               <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Problem</label>
               <input
-                value={problemSearch}
-                onChange={(e) => setProblemSearch(e.target.value)}
+                value={problemInput}
+                onChange={(e) => handleProblemChange(e.target.value)}
                 placeholder="Search problems..."
                 className={inputClass}
               />
@@ -280,8 +306,8 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
             <div className="space-y-1">
               <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Username</label>
               <input
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
+                value={userInput}
+                onChange={(e) => handleUserChange(e.target.value)}
                 placeholder="Search users..."
                 className={inputClass}
               />
@@ -293,9 +319,9 @@ export default function SubmissionsClient({ initialSubmissions, stats, fetchErro
                 {(['all', 'passed', 'failed'] as const).map((s) => (
                   <button
                     key={s}
-                    onClick={() => setStatusFilter(s)}
+                    onClick={() => handleStatusChange(s)}
                     className={`flex-1 py-1.5 capitalize transition-colors ${
-                      statusFilter === s
+                      currentStatusFilter === s
                         ? 'bg-brand-primary text-white'
                         : 'bg-surface-2 text-text-muted hover:text-foreground hover:bg-surface-3'
                     }`}
