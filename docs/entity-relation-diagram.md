@@ -15,6 +15,7 @@ erDiagram
         timestamptz updated_at
         boolean is_active
         jsonb profile_data
+        int problems_solved
     }
 
     %% Roles (Admins & Managers)

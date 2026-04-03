@@ -76,6 +76,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: data?.error || 'Judge error' }, { status: resp.status || 500 });
     }
 
+    // Check for first solve before inserting (so we don't count the new submission itself)
+    const summary = data.summary as { failed?: number; total?: number } | null;
+    const isPassed = summary != null && (summary.failed ?? 1) === 0 && (summary.total ?? 0) > 0;
+    let isFirstSolve = false;
+    if (isPassed) {
+      const { data: priorPass } = await supabase
+        .from('submissions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('problem_id', problem.id)
+        .eq('status', 'passed')
+        .limit(1);
+      isFirstSolve = !priorPass || priorPass.length === 0;
+    }
+
     // Persist submission
     const { error: insErr } = await supabase.from('submissions').insert({
       problem_id: problem.id,
@@ -89,6 +104,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
     if (insErr) {
       console.warn('[submit] Failed to record submission:', insErr);
+    }
+
+    // Increment global problems_solved counter on first solve
+    if (isPassed && isFirstSolve) {
+      const { error: rpcErr } = await supabase.rpc('increment_problems_solved', { uid: userId });
+      if (rpcErr) {
+        console.warn('[submit] Failed to increment problems_solved:', rpcErr);
+      }
     }
 
     return NextResponse.json({ results: data.results, summary: data.summary });

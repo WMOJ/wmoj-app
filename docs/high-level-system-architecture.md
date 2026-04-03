@@ -23,7 +23,7 @@ flowchart TD
         direction TB
         PublicAPI[Public Endpoints<br/>/api/problems, /api/contests]:::backend
         AdminAPI[Admin & Manager Endpoints<br/>Auth Guarded]:::backend
-        SubmitAPI[Submission Endpoint<br/>/api/problems/:id/submit]:::backend
+        SubmitAPI[Submission Endpoint<br/>/api/problems/:id/submit<br/>+ First-Solve Counter]:::backend
     end
 
     %% Database & Auth Layer
@@ -49,7 +49,7 @@ flowchart TD
     %% Backend to Database 
     PublicAPI <-->|Reads Data| DB
     AdminAPI <-->|CRUD Operations| DB
-    SubmitAPI <-->|Read Limits & Save Submissions| DB
+    SubmitAPI <-->|Read Limits, Save Submissions & Update User Stats| DB
 
     %% Auth interactions
     User <-->|Login/Signup| Auth

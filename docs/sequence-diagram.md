@@ -66,8 +66,21 @@ sequenceDiagram
     note right of Judge: Compiles code in Sandbox.<br/>Runs tests synchronously.
     Judge-->>API: Returns Execution Results (Passed/Failed test cases, Time/Memory used)
 
+    alt Submission passed all test cases
+        API->>DB: Check submissions for prior passing submission (same user + problem)
+        DB-->>API: Returns prior pass count
+        note right of API: isFirstSolve = no prior passing submission found
+    end
+
     API->>DB: Insert into submissions table (results, code, status)
     DB-->>API: Ack
+
+    alt isPassed && isFirstSolve
+        API->>DB: CALL increment_problems_solved(user_id)
+        note right of DB: Atomically increments users.problems_solved<br/>via SECURITY DEFINER RPC function
+        DB-->>API: Ack
+    end
+
     API-->>UI: Returns Evaluation Summary
     UI-->>User: Displays "Accepted" or "Failed" Visuals
     end
