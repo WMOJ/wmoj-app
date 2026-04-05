@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Pagination from '@/components/Pagination';
 import type { UserRow } from './page';
 
@@ -101,8 +102,10 @@ export default function UsersClient({
                     <td className="px-4 py-3 text-sm text-text-muted font-mono text-center align-middle">
                       {rankOffset + index + 1}
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-foreground align-middle">
-                      {user.username}
+                    <td className="px-4 py-3 text-sm font-medium align-middle">
+                      <Link href={`/users/${user.id}`} className="text-brand-primary hover:underline">
+                        {user.username}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-sm font-mono text-foreground text-right align-middle">
                       {user.problems_solved}

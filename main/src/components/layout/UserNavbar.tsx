@@ -163,6 +163,21 @@ export const UserNavbar = () => {
                                 <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
                             </div>
 
+                            <Link
+                                href={`/users/${user?.id}`}
+                                onClick={() => setIsMenuOpen(false)}
+                                className="block w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 rounded-lg transition-colors"
+                            >
+                                My Profile
+                            </Link>
+                            <Link
+                                href="/edit/profile"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="block w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 rounded-lg transition-colors"
+                            >
+                                Edit Profile
+                            </Link>
+
                             {switchButton && (
                                 <button
                                     onClick={() => {

@@ -12,6 +12,7 @@ interface MarkdownEditorProps {
   placeholder?: string;
   height?: number;
   className?: string;
+  label?: string;
 }
 
 export function MarkdownEditor({
@@ -19,7 +20,8 @@ export function MarkdownEditor({
   onChange,
   placeholder = "Enter markdown content...",
   height = 400,
-  className = ""
+  className = "",
+  label = "Problem Description"
 }: MarkdownEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
   const { theme } = useTheme();
@@ -27,7 +29,7 @@ export function MarkdownEditor({
   return (
     <div className={`markdown-editor ${className}`}>
       <div className="flex justify-between items-center mb-3">
-        <h3 className="text-sm font-medium text-foreground">Problem Description</h3>
+        <h3 className="text-sm font-medium text-foreground">{label}</h3>
         <div className="flex gap-1.5">
           <button
             type="button"
