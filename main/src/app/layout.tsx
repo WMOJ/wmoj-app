@@ -21,13 +21,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://wmoj.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://wmoj.ca'),
   title: {
-    default: "WMOJ - Competitive Programming Platform",
+    default: "WMOJ - Open Source Competitive Programming Platform",
     template: "%s | WMOJ",
   },
-  description: "Join WMOJ, the ultimate competitive programming platform for coding enthusiasts and developers. Practice problems, compete in contests, and improve your skills.",
-  keywords: ["competitive programming", "coding", "algorithm", "data structures", "contest", "programming"],
+  description: "A modern open-source judge and competitive programming platform. Practice problems, compete in contests, and improve your skills.",
+  keywords: ["competitive programming", "problem solving", "algorithm", "data structures", "contest", "programming"],
   authors: [{ name: "WMOJ Team" }],
   creator: "WMOJ",
   publisher: "WMOJ",
@@ -40,8 +40,8 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "/",
     siteName: "WMOJ",
-    title: "WMOJ - Competitive Programming Platform",
-    description: "Join WMOJ, the ultimate competitive programming platform for coding enthusiasts and developers.",
+    title: "WMOJ - Open Source Competitive Programming Platform",
+    description: "A modern open-source judge and competitive programming platform.",
     images: [
       {
         url: "/og-image.png", // Assuming an OG image exists or will exist; decent fallback even if 404 for now
@@ -53,8 +53,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "WMOJ - Competitive Programming Platform",
-    description: "Join WMOJ, the ultimate competitive programming platform for coding enthusiasts and developers.",
+    title: "WMOJ - Open Source Competitive Programming Platform",
+    description: "A modern open-source judge and competitive programming platform.",
     // images: ["/twitter-image.png"], // Optional
   },
 };
