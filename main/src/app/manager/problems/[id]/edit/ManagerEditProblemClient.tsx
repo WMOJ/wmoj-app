@@ -119,6 +119,12 @@ export default function ManagerEditProblemClient({ problem, initialContests }: {
 
           <form onSubmit={handleSubmit} className="space-y-5 max-w-4xl">
             <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">Problem ID</label>
+              <input className={`${inputClass} opacity-60 cursor-not-allowed`} value={problem.id} readOnly disabled />
+              <p className="text-xs text-text-muted">The problem ID cannot be changed after creation.</p>
+            </div>
+
+            <div className="space-y-1.5">
               <label htmlFor="name" className="block text-sm font-medium text-foreground">Problem Name *</label>
               <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} required className={inputClass} placeholder="Enter problem name" />
             </div>

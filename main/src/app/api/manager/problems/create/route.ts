@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getManagerSupabase } from '@/lib/managerAuth';
+import { validateSlug } from '@/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, content, contest, input, output, timeLimit, memoryLimit, difficulty } = await request.json();
+    const { id, name, content, contest, input, output, timeLimit, memoryLimit, difficulty } = await request.json();
+
+    const slugError = validateSlug(id, 'Problem');
+    if (slugError) {
+      return NextResponse.json({ error: slugError }, { status: 400 });
+    }
 
     if (!name || !content || !input || !output) {
       return NextResponse.json(
@@ -51,10 +57,17 @@ export async function POST(request: NextRequest) {
     if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const { supabase, user } = auth;
 
+    // Check uniqueness of problem ID
+    const { data: existing } = await supabase.from('problems').select('id').eq('id', id).maybeSingle();
+    if (existing) {
+      return NextResponse.json({ error: 'A problem with this ID already exists' }, { status: 409 });
+    }
+
     const { data, error } = await supabase
       .from('problems')
       .insert([
         {
+          id,
           name,
           content,
           contest: contest || null,

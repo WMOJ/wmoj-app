@@ -15,16 +15,16 @@ interface ProfileData {
 export default async function UserProfilePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ username: string }>;
 }) {
-  const { id } = await params;
+  const { username } = await params;
   const supabase = await getServerSupabase();
 
   // Fetch user profile
   const { data: user, error: userError } = await supabase
     .from('users')
     .select('id, username, created_at, about_me, problems_solved')
-    .eq('id', id)
+    .eq('username', username)
     .eq('is_active', true)
     .maybeSingle();
 
@@ -43,7 +43,7 @@ export default async function UserProfilePage({
   const { data: submissions } = await supabase
     .from('submissions')
     .select('created_at')
-    .eq('user_id', id);
+    .eq('user_id', user.id);
 
   // Group by date
   const countMap = new Map<string, number>();
@@ -63,10 +63,10 @@ export default async function UserProfilePage({
   const { count: contestsWritten } = await supabase
     .from('join_history')
     .select('contest_id', { count: 'exact', head: true })
-    .eq('user_id', id);
+    .eq('user_id', user.id);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const avatarUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${id}/avatar`;
+  const avatarUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${user.id}/avatar`;
 
   const profileData: ProfileData = {
     id: user.id,
