@@ -8,6 +8,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { ManagerGuard } from '@/components/ManagerGuard';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
+import { validateSlug } from '@/utils/validation';
 
 interface Contest { id: string; name: string; }
 
@@ -23,7 +24,7 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [contests] = useState<Contest[]>(initialContests);
-  const [formData, setFormData] = useState({ name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', difficulty: 'Easy' });
+  const [formData, setFormData] = useState({ id: '', name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', difficulty: 'Easy' });
   const [generatorCode, setGeneratorCode] = useState('');
   const [genLoading, setGenLoading] = useState(false);
   const [generatedInput, setGeneratedInput] = useState<string[] | null>(null);
@@ -53,6 +54,8 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true); setError(''); setSuccess('');
+    const slugError = validateSlug(formData.id, 'Problem');
+    if (slugError) { setError(slugError); setLoading(false); return; }
     try {
       if (!generatedInput || !generatedOutput) { setError('Please generate test cases first.'); setLoading(false); return; }
       if (generatedInput.length === 0 || generatedOutput.length === 0) { setError('Generated test cases are empty.'); setLoading(false); return; }
@@ -61,12 +64,12 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/manager/problems/create', {
         method: 'POST', headers,
-        body: JSON.stringify({ name: formData.name, content: formData.content, contest: formData.contest || null, input: generatedInput, output: generatedOutput, timeLimit: parseInt(formData.timeLimit, 10), memoryLimit: parseInt(formData.memoryLimit, 10), difficulty: formData.difficulty })
+        body: JSON.stringify({ id: formData.id, name: formData.name, content: formData.content, contest: formData.contest || null, input: generatedInput, output: generatedOutput, timeLimit: parseInt(formData.timeLimit, 10), memoryLimit: parseInt(formData.memoryLimit, 10), difficulty: formData.difficulty })
       });
       const json = await res.json();
       if (res.ok) {
         setSuccess('Problem created successfully!');
-        setFormData({ name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', difficulty: 'Easy' });
+        setFormData({ id: '', name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', difficulty: 'Easy' });
         setGeneratorCode(''); setGeneratedInput(null); setGeneratedOutput(null); setGenError('');
         setTimeout(() => router.push('/manager/dashboard'), 2000);
       } else { setError(json.error || 'Failed to create problem'); }
@@ -84,6 +87,12 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 max-w-4xl">
+            <div className="space-y-1.5">
+              <label htmlFor="id" className="block text-sm font-medium text-foreground">Problem ID (Slug) *</label>
+              <input type="text" id="id" name="id" value={formData.id} onChange={handleChange} required className={inputClass} placeholder="e.g. two-sum" />
+              <p className="text-xs text-text-muted">URL-friendly identifier (letters, numbers, hyphens, underscores). Cannot be changed later.</p>
+            </div>
+
             <div className="space-y-1.5">
               <label htmlFor="name" className="block text-sm font-medium text-foreground">Problem Name *</label>
               <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} required className={inputClass} placeholder="Enter problem name" />

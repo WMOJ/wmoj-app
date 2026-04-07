@@ -9,6 +9,7 @@ import { ManagerGuard } from '@/components/ManagerGuard';
 import { useRouter } from 'next/navigation';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
+import { validateSlug } from '@/utils/validation';
 
 const MarkdownEditor = dynamic(() => import('@/components/MarkdownEditor').then(m => m.MarkdownEditor), { ssr: false });
 
@@ -21,7 +22,7 @@ export default function ManagerCreateContestClient() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
-    name: '', description: '', length: 60,
+    id: '', name: '', description: '', length: 60,
     starts_at: '', ends_at: '', is_rated: false
   });
 
@@ -37,6 +38,9 @@ export default function ManagerCreateContestClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true); setError(''); setSuccess('');
 
+    const slugError = validateSlug(formData.id, 'Contest');
+    if (slugError) { setError(slugError); setLoading(false); return; }
+
     if (formData.starts_at && formData.ends_at && new Date(formData.starts_at) >= new Date(formData.ends_at)) {
       setError('Start date/time must be before end date/time');
       setLoading(false);
@@ -48,6 +52,7 @@ export default function ManagerCreateContestClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
         body: JSON.stringify({
+          id: formData.id,
           name: formData.name,
           description: formData.description,
           length: formData.length,
@@ -59,7 +64,7 @@ export default function ManagerCreateContestClient() {
       const json = await res.json();
       if (res.ok) {
         setSuccess('Contest created successfully!');
-        setFormData({ name: '', description: '', length: 60, starts_at: '', ends_at: '', is_rated: false });
+        setFormData({ id: '', name: '', description: '', length: 60, starts_at: '', ends_at: '', is_rated: false });
         setTimeout(() => router.push('/manager/dashboard'), 2000);
       } else { setError(json.error || 'Failed to create contest'); }
     } catch { setError('An unexpected error occurred'); }
@@ -76,6 +81,12 @@ export default function ManagerCreateContestClient() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 max-w-4xl">
+            <div className="space-y-1.5">
+              <label htmlFor="id" className="block text-sm font-medium text-foreground">Contest ID (Slug) *</label>
+              <input type="text" id="id" name="id" value={formData.id} onChange={handleChange} required className={inputClass} placeholder="e.g. winter-2026" />
+              <p className="text-xs text-text-muted">URL-friendly identifier (letters, numbers, hyphens, underscores). Cannot be changed later.</p>
+            </div>
+
             <div className="space-y-1.5">
               <label htmlFor="name" className="block text-sm font-medium text-foreground">Contest Name *</label>
               <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} required className={inputClass} placeholder="Enter contest name" />

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
+import { validateUsername } from '@/utils/validation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 
@@ -29,6 +30,12 @@ export default function SignupClient() {
     }
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
+    const usernameError = validateUsername(formData.username);
+    if (usernameError) {
+      setError(usernameError);
       setLoading(false);
       return;
     }

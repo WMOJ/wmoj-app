@@ -214,6 +214,11 @@ export default function ManageContestsClient({ initialContests }: { initialConte
                   ) : (
                     <>
                       <div className="space-y-1.5">
+                        <label className="block text-sm font-medium text-foreground">Contest ID</label>
+                        <input className={`${inputClass} opacity-60 cursor-not-allowed`} value={editing.id} readOnly disabled />
+                        <p className="text-xs text-text-muted">The contest ID cannot be changed after creation.</p>
+                      </div>
+                      <div className="space-y-1.5">
                         <label className="block text-sm font-medium text-foreground">Name</label>
                         <input className={inputClass} value={editing.name} placeholder="Contest title" onChange={e => setEditing(s => s ? { ...s, name: e.target.value } : s)} />
                       </div>

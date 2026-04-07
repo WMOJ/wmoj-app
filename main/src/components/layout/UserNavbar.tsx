@@ -164,7 +164,7 @@ export const UserNavbar = () => {
                             </div>
 
                             <Link
-                                href={`/users/${user?.id}`}
+                                href={`/users/${profile?.username || user?.id}`}
                                 onClick={() => setIsMenuOpen(false)}
                                 className="block w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 rounded-lg transition-colors"
                             >

@@ -103,7 +103,7 @@ export default function UsersClient({
                       {rankOffset + index + 1}
                     </td>
                     <td className="px-4 py-3 text-sm font-medium align-middle">
-                      <Link href={`/users/${user.id}`} className="text-brand-primary hover:underline">
+                      <Link href={`/users/${user.username}`} className="text-brand-primary hover:underline">
                         {user.username}
                       </Link>
                     </td>

@@ -212,6 +212,11 @@ export default function ManagerManageContestsClient({ initialContests }: { initi
                     <SkeletonText lines={3} />
                   ) : (
                     <>
+                      <div className="space-y-1.5">
+                        <label className="block text-sm font-medium text-foreground">Contest ID</label>
+                        <input className={`${inputClass} opacity-60 cursor-not-allowed`} value={editing.id} readOnly disabled />
+                        <p className="text-xs text-text-muted">The contest ID cannot be changed after creation.</p>
+                      </div>
                       <div className="grid md:grid-cols-3 gap-4 items-start">
                         <div className="md:col-span-2 space-y-1.5">
                           <label className="block text-sm font-medium text-foreground">Name</label>
