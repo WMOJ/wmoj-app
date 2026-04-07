@@ -76,6 +76,9 @@ export default function LoginClient() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-sm font-medium text-text-muted">Password</label>
+                  <Link href="/auth/forgot-password" className="text-xs text-text-muted hover:text-foreground">
+                    Forgot password?
+                  </Link>
                 </div>
                 <div className="relative">
                   <input
