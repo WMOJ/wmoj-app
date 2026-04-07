@@ -77,7 +77,7 @@ export default function ResetPasswordClient() {
 
           {!ready ? (
             <div className="text-sm text-text-muted text-center py-4">
-              Verifying reset link...
+              Verifying reset link... please wait
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
