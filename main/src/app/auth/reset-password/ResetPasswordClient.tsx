@@ -16,9 +16,15 @@ export default function ResetPasswordClient() {
   const router = useRouter();
 
   useEffect(() => {
-    // Supabase exchanges the token in the URL hash and fires PASSWORD_RECOVERY
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+    // The PASSWORD_RECOVERY event may fire before this component mounts
+    // (Supabase processes the token from the URL immediately on page load).
+    // Check for an existing session first, then fall back to the event listener.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
         setReady(true);
       }
     });
