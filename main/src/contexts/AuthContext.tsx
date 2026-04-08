@@ -11,6 +11,7 @@ interface AuthContextType {
   session: Session | null;
   profile: UserProfile | null;
   loading: boolean;
+  profileLoading: boolean;
   userRole: UserRole | null;
   userDashboardPath: string | null;
   signUp: (email: string, password: string, username: string) => Promise<{ error: AuthError | null }>;
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userDashboardPath, setUserDashboardPath] = useState<string | null>(null);
 
@@ -44,6 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Unexpected error fetching user profile:', error);
+    } finally {
+      setProfileLoading(false);
     }
   }, []);
 
@@ -163,11 +167,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser);
 
       if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+        if (event === 'SIGNED_IN') setProfileLoading(true);
         await ensureUserSetup(currentUser);
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
         setUserRole(null);
         setUserDashboardPath(null);
+        setProfileLoading(true);
       }
     });
 
@@ -202,13 +208,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     profile,
     loading,
+    profileLoading,
     userRole,
     userDashboardPath,
     signUp,
     signIn,
     signOut,
     refreshProfile
-  }), [user, session, profile, loading, userRole, userDashboardPath, refreshProfile]);
+  }), [user, session, profile, loading, profileLoading, userRole, userDashboardPath, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
