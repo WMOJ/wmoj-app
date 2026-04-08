@@ -131,7 +131,7 @@ export default function ProblemDetailClient({ problem, initialBestSummary }: Pro
 
                 {user && (
                   <Link
-                    href={`/submissions?user=${encodeURIComponent(profile?.username ?? '')}`}
+                    href={`/submissions?user=${encodeURIComponent(profile?.username ?? '')}&problem=${encodeURIComponent(problem.name)}`}
                     className="w-full h-9 border border-border text-sm font-medium text-foreground rounded-lg hover:bg-surface-2 transition-colors flex items-center justify-center gap-2"
                   >
                     <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
