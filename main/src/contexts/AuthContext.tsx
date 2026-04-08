@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { getUserRole, getUserDashboardPath } from '@/utils/userRole';
 import { UserRole, UserProfile } from '@/types/user';
 
 interface AuthContextType {
@@ -51,55 +50,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const updateUserRoleAndPath = useCallback(async (userId: string) => {
-    try {
-      const role = await getUserRole(userId);
-      const dashboardPath = await getUserDashboardPath(userId);
-
-      setUserRole(role);
-      setUserDashboardPath(dashboardPath);
-    } catch (error) {
-      console.error('Error updating user role and path:', error);
-      setUserRole('regular');
-      setUserDashboardPath('/');
-    }
-  }, []);
-
   // Idempotent user setup — safe to call concurrently from multiple paths.
-  // No ref guard; redundant parallel calls just produce harmless extra queries.
   // Internally races against a timeout so guards are never blocked forever.
   const ensureUserSetup = useCallback(async (currentUser: User) => {
     const doSetup = async () => {
-      // Update last login if user exists in specialized tables
-      const { data: adminUser } = await supabase.from('admins').select('id').eq('id', currentUser.id).maybeSingle();
-      const { data: managerUser } = await supabase.from('managers').select('id').eq('id', currentUser.id).maybeSingle();
+      const now = new Date().toISOString();
+
+      // Round 1: check all three tables in parallel — no sequential waits
+      const [{ data: adminUser }, { data: managerUser }, { data: existingUser }] = await Promise.all([
+        supabase.from('admins').select('id').eq('id', currentUser.id).maybeSingle(),
+        supabase.from('managers').select('id').eq('id', currentUser.id).maybeSingle(),
+        supabase.from('users').select('id').eq('id', currentUser.id).maybeSingle(),
+      ]);
+
+      // Derive role and path immediately — no further queries needed
+      const role: UserRole = adminUser ? 'admin' : managerUser ? 'manager' : 'regular';
+      const dashboardPath = role === 'admin' ? '/admin/dashboard' : role === 'manager' ? '/manager/dashboard' : '/';
+      setUserRole(role);
+      setUserDashboardPath(dashboardPath);
+
+      // Round 2: profile fetch + last_login updates in parallel (fire together)
+      const writes: Promise<unknown>[] = [];
 
       if (adminUser) {
-        await supabase.from('admins').update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+        writes.push(supabase.from('admins').update({ last_login: now, updated_at: now }).eq('id', currentUser.id));
       } else if (managerUser) {
-        await supabase.from('managers').update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+        writes.push(supabase.from('managers').update({ last_login: now, updated_at: now }).eq('id', currentUser.id));
       }
 
-      // Always ensure/update base user profile
-      const { data: existingUser } = await supabase.from('users').select('id').eq('id', currentUser.id).maybeSingle();
-
       if (!existingUser) {
-        await supabase.from('users').insert({
+        writes.push(supabase.from('users').insert({
           id: currentUser.id,
           username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
           email: currentUser.email || '',
           created_at: currentUser.created_at,
-          last_login: new Date().toISOString()
-        });
+          last_login: now,
+        }));
       } else {
-        await supabase.from('users').update({
-          last_login: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }).eq('id', currentUser.id);
+        writes.push(supabase.from('users').update({ last_login: now, updated_at: now }).eq('id', currentUser.id));
       }
 
-      await updateUserRoleAndPath(currentUser.id);
-      await fetchUserProfile(currentUser.id);
+      await Promise.all([fetchUserProfile(currentUser.id), ...writes]);
     };
 
     try {
@@ -115,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Always guarantee role/path have values so guards never block forever
     setUserRole(prev => prev ?? 'regular');
     setUserDashboardPath(prev => prev ?? '/');
-  }, [updateUserRoleAndPath, fetchUserProfile]);
+  }, [fetchUserProfile]);
 
   const refreshProfile = useCallback(async () => {
     if (user) {
@@ -166,8 +157,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(currentUser);
 
-      if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
-        if (event === 'SIGNED_IN') setProfileLoading(true);
+      if (currentUser && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+        setProfileLoading(true);
         await ensureUserSetup(currentUser);
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
