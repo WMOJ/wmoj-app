@@ -186,12 +186,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(currentUser);
 
-      if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+      if (currentUser && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
         if (event === 'SIGNED_IN') {
           setProfileLoading(true);
           setupInProgressRef.current = null; // allow re-run on fresh sign-in
         }
         await ensureUserSetup(currentUser);
+      } else if (event === 'INITIAL_SESSION' && !currentUser) {
+        setProfileLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
         setUserRole(null);
