@@ -73,21 +73,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const writes: Promise<unknown>[] = [];
 
       if (adminUser) {
-        writes.push(supabase.from('admins').update({ last_login: now, updated_at: now }).eq('id', currentUser.id));
+        writes.push(Promise.resolve(supabase.from('admins').update({ last_login: now, updated_at: now }).eq('id', currentUser.id)));
       } else if (managerUser) {
-        writes.push(supabase.from('managers').update({ last_login: now, updated_at: now }).eq('id', currentUser.id));
+        writes.push(Promise.resolve(supabase.from('managers').update({ last_login: now, updated_at: now }).eq('id', currentUser.id)));
       }
 
       if (!existingUser) {
-        writes.push(supabase.from('users').insert({
+        writes.push(Promise.resolve(supabase.from('users').insert({
           id: currentUser.id,
           username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
           email: currentUser.email || '',
           created_at: currentUser.created_at,
           last_login: now,
-        }));
+        })));
       } else {
-        writes.push(supabase.from('users').update({ last_login: now, updated_at: now }).eq('id', currentUser.id));
+        writes.push(Promise.resolve(supabase.from('users').update({ last_login: now, updated_at: now }).eq('id', currentUser.id)));
       }
 
       await Promise.all([fetchUserProfile(currentUser.id), ...writes]);
