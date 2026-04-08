@@ -148,10 +148,17 @@ export default async function SubmissionsPage({
       }
     }
 
-    // Stats: lightweight aggregate over all submissions (no pagination, fewer fields)
-    const { data: allSubsForStats } = await supabase
+    // Stats: aggregate over filtered submissions (mirrors active search/filter)
+    let statsQuery = supabase
       .from('submissions')
       .select('status, summary, results');
+
+    if (statusFilter === 'passed') statsQuery = statsQuery.eq('status', 'passed');
+    if (statusFilter === 'failed') statsQuery = statsQuery.neq('status', 'passed');
+    if (filteredUserIds !== null) statsQuery = statsQuery.in('user_id', filteredUserIds);
+    if (filteredProblemIds !== null) statsQuery = statsQuery.in('problem_id', filteredProblemIds);
+
+    const { data: allSubsForStats } = noResults ? { data: [] } : await statsQuery;
 
     for (const s of allSubsForStats || []) {
       const summary = s.summary as { passed?: number; total?: number } | null;
