@@ -48,7 +48,7 @@ export const Header = () => {
             return { label: 'Switch to Manager Panel', path: '/manager/dashboard' };
         }
         return null;
-    })() : null;
+    })();
 
     return (
         <header className="sticky top-0 z-40 h-14 border-b border-border bg-background flex items-center justify-end px-6 gap-3">
