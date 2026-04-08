@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 export const Header = () => {
     const { user, profile, userRole, profileLoading, signOut } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [avatarError, setAvatarError] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const pathname = usePathname();
@@ -31,6 +32,7 @@ export const Header = () => {
 
     const displayName = profile?.username || user.email || "User";
     const initial = displayName.charAt(0).toUpperCase();
+    const avatarUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}/avatar`;
 
     const switchButton = profileLoading ? null : (() => {
         if (userRole === 'admin') {
@@ -64,9 +66,18 @@ export const Header = () => {
                         </div>
                     ) : (
                         <>
-                            <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
-                                {initial}
-                            </div>
+                            {!avatarError ? (
+                                <img
+                                    src={avatarUrl}
+                                    alt={displayName}
+                                    className="w-7 h-7 rounded-lg object-cover"
+                                    onError={() => setAvatarError(true)}
+                                />
+                            ) : (
+                                <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
+                                    {initial}
+                                </div>
+                            )}
                             <span className="font-medium text-foreground hidden sm:block">
                                 {displayName}
                             </span>

@@ -82,6 +82,7 @@ export const UserNavbar = () => {
     const pathname = usePathname();
     const { user, profile, userRole, profileLoading, signOut } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [avatarError, setAvatarError] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
@@ -104,6 +105,9 @@ export const UserNavbar = () => {
         ? (profile?.username || user.email || "User")
         : null;
     const initial = displayName ? displayName.charAt(0).toUpperCase() : null;
+    const avatarUrl = user
+        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}/avatar`
+        : null;
 
     const switchButton = (user && !profileLoading) ? (() => {
         if (userRole === "admin") return { label: "Switch to Admin Panel", path: "/admin/dashboard" };
@@ -148,9 +152,18 @@ export const UserNavbar = () => {
                             </div>
                         ) : (
                             <>
-                                <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
-                                    {initial}
-                                </div>
+                                {!avatarError && avatarUrl ? (
+                                    <img
+                                        src={avatarUrl}
+                                        alt={displayName ?? ""}
+                                        className="w-7 h-7 rounded-lg object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : (
+                                    <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
+                                        {initial}
+                                    </div>
+                                )}
                                 <span className="font-medium text-foreground hidden sm:block">
                                     {displayName}
                                 </span>
