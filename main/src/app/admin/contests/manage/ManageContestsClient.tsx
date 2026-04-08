@@ -191,11 +191,16 @@ export default function ManageContestsClient({ initialContests }: { initialConte
             </div>
           </div>
 
-          {filteredContests.length === 0 ? (
-            <p className="text-sm text-text-muted text-center py-8">No contests match your filters.</p>
-          ) : (
-            <DataTable<Row> columns={columns} rows={filteredContests} rowKey={(r) => r.id} />
-          )}
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">All Contests</h2>
+            </div>
+            {filteredContests.length === 0 ? (
+              <p className="text-sm text-text-muted text-center py-8">No contests match your filters.</p>
+            ) : (
+              <DataTable<Row> columns={columns} rows={filteredContests} rowKey={(r) => r.id} pageSize={20} />
+            )}
+          </div>
 
           {/* Edit Modal */}
           {editing && (

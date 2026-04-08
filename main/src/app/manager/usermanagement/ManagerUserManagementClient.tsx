@@ -76,11 +76,16 @@ export default function ManagerUserManagementClient({ initialUsers }: { initialU
             </div>
           </div>
 
-          {filteredUsers.length === 0 ? (
-            <p className="text-sm text-text-muted text-center py-8">No users match your filters.</p>
-          ) : (
-            <DataTable<Row> columns={columns} rows={filteredUsers} rowKey={(r) => r.id} />
-          )}
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">All Users</h2>
+            </div>
+            {filteredUsers.length === 0 ? (
+              <p className="text-sm text-text-muted text-center py-8">No users match your filters.</p>
+            ) : (
+              <DataTable<Row> columns={columns} rows={filteredUsers} rowKey={(r) => r.id} pageSize={20} />
+            )}
+          </div>
         </div>
       </ManagerGuard>
     </AuthGuard>

@@ -96,11 +96,16 @@ export default function ManageProblemsClient({
             </div>
           </div>
 
-          {filteredProblems.length === 0 ? (
-            <p className="text-sm text-text-muted text-center py-8">No problems match your filters.</p>
-          ) : (
-            <DataTable<Row> columns={columns} rows={filteredProblems} rowKey={(r) => r.id} />
-          )}
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">All Problems</h2>
+            </div>
+            {filteredProblems.length === 0 ? (
+              <p className="text-sm text-text-muted text-center py-8">No problems match your filters.</p>
+            ) : (
+              <DataTable<Row> columns={columns} rows={filteredProblems} rowKey={(r) => r.id} pageSize={20} />
+            )}
+          </div>
         </div>
       </AdminGuard>
     </AuthGuard>

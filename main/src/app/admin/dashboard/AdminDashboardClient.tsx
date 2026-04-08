@@ -150,15 +150,15 @@ export default function AdminDashboardClient({ initialSubmissions }: { initialSu
             <p className="text-sm text-text-muted mt-1">Manage contests and problems for the competitive programming platform</p>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider">Submissions to My Problems</h2>
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Recent Submissions</h2>
               <span className="text-xs text-text-muted font-mono">{initialSubmissions.length} total</span>
             </div>
             {initialSubmissions.length > 0 ? (
-              <DataTable<Row> columns={columns} rows={initialSubmissions} rowKey={(r) => r.id} />
+              <DataTable<Row> columns={columns} rows={initialSubmissions} rowKey={(r) => r.id} pageSize={20} />
             ) : (
-              <p className="text-sm text-text-muted py-6 text-center">No submissions found.</p>
+              <p className="text-sm text-text-muted py-8 text-center">No submissions found.</p>
             )}
           </div>
         </div>

@@ -129,13 +129,18 @@ export default function ManagerNewsPostsClient({ initialPosts }: { initialPosts:
             className="w-full h-9 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
           />
 
-          {filtered.length === 0 ? (
-            <p className="text-sm text-text-muted text-center py-8">
-              {posts.length === 0 ? 'No news posts yet. Create your first post.' : 'No posts match your search.'}
-            </p>
-          ) : (
-            <DataTable<NewsPostRow> columns={columns} rows={filtered} rowKey={r => r.id} />
-          )}
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">All Posts</h2>
+            </div>
+            {filtered.length === 0 ? (
+              <p className="text-sm text-text-muted text-center py-8">
+                {posts.length === 0 ? 'No news posts yet. Create your first post.' : 'No posts match your search.'}
+              </p>
+            ) : (
+              <DataTable<NewsPostRow> columns={columns} rows={filtered} rowKey={r => r.id} pageSize={20} />
+            )}
+          </div>
         </div>
       </ManagerGuard>
     </AuthGuard>

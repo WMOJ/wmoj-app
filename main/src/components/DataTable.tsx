@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { getTableTheme, type HeaderVariant } from './tableThemes';
+import ClientPagination from './ClientPagination';
 
 export type DataTableColumn<Row> = {
   key: string;
@@ -21,6 +22,7 @@ export type DataTableProps<Row extends object> = {
   headerVariant?: HeaderVariant;
   className?: string;
   stickyHeader?: boolean;
+  pageSize?: number;
 };
 
 type SortState<Row> = {
@@ -33,10 +35,17 @@ export function DataTable<Row extends object>(props: DataTableProps<Row>) {
   const {
     columns, rows, rowKey, emptyState,
     headerVariant = 'gray', className = '', stickyHeader = true,
+    pageSize,
   } = props;
 
   const [sort, setSort] = useState<SortState<Row>>({ key: null, direction: 'asc', column: null });
+  const [page, setPage] = useState(1);
   const theme = getTableTheme(headerVariant);
+
+  // Reset to page 1 whenever the incoming rows change (search/filter in parent)
+  useEffect(() => {
+    setPage(1);
+  }, [rows]);
 
   const sortedRows = useMemo(() => {
     if (!sort.key || !sort.column) return rows;
@@ -65,6 +74,11 @@ export function DataTable<Row extends object>(props: DataTableProps<Row>) {
     return list;
   }, [rows, sort]);
 
+  const totalPages = pageSize ? Math.ceil(sortedRows.length / pageSize) : 1;
+  const displayRows = pageSize
+    ? sortedRows.slice((page - 1) * pageSize, page * pageSize)
+    : sortedRows;
+
   const onSort = (col: DataTableColumn<Row>) => {
     if (!col.sortable) return;
     setSort((prev) => {
@@ -74,60 +88,71 @@ export function DataTable<Row extends object>(props: DataTableProps<Row>) {
   };
 
   return (
-    <div className={`overflow-x-auto ${className}`}>
-      <table className="min-w-full text-left border-collapse">
-        <thead className={`${stickyHeader ? 'sticky top-0 z-10' : ''} ${theme.headerRow}`}>
-          <tr>
-            {columns.map((col) => {
-              const isSorted = sort.key === col.key;
-              return (
-                <th
-                  key={col.key}
-                  className={`px-4 py-2.5 ${theme.headerCell} ${col.className || ''} ${col.sortable ? 'cursor-pointer select-none group' : ''}`}
-                  onClick={() => onSort(col)}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>{col.header}</span>
-                    {col.sortable && (
-                      <span className={isSorted ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}>
-                        {isSorted ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {sortedRows.length === 0 ? (
+    <div className={className}>
+      {pageSize && totalPages > 1 && (
+        <div className="px-4 py-2 border-b border-border">
+          <ClientPagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left border-collapse">
+          <thead className={`${stickyHeader ? 'sticky top-0 z-10' : ''} ${theme.headerRow}`}>
             <tr>
-              <td colSpan={columns.length} className="px-4 py-10 text-center text-text-muted text-sm">
-                {emptyState || <p>No data found.</p>}
-              </td>
+              {columns.map((col) => {
+                const isSorted = sort.key === col.key;
+                return (
+                  <th
+                    key={col.key}
+                    className={`px-4 py-2.5 ${theme.headerCell} ${col.className || ''} ${col.sortable ? 'cursor-pointer select-none group' : ''}`}
+                    onClick={() => onSort(col)}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>{col.header}</span>
+                      {col.sortable && (
+                        <span className={isSorted ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}>
+                          {isSorted ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
-          ) : (
-            sortedRows.map((row, index) => {
-              const key = rowKey
-                ? rowKey(row, index)
-                : (() => {
-                  const rec = row as unknown as Record<string, unknown>;
-                  const val = rec.id;
-                  return val != null ? String(val) : String(index);
-                })();
-              return (
-                <tr key={key} className={`${theme.rowHover} group`}>
-                  {columns.map((col) => (
-                    <td key={col.key} className={`px-4 py-3 align-middle text-sm text-foreground ${col.className || ''}`}>
-                      {col.render ? col.render(row) : ((row as unknown as Record<string, unknown>)[col.key] as ReactNode)}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {displayRows.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length} className="px-4 py-10 text-center text-text-muted text-sm">
+                  {emptyState || <p>No data found.</p>}
+                </td>
+              </tr>
+            ) : (
+              displayRows.map((row, index) => {
+                const key = rowKey
+                  ? rowKey(row, index)
+                  : (() => {
+                    const rec = row as unknown as Record<string, unknown>;
+                    const val = rec.id;
+                    return val != null ? String(val) : String(index);
+                  })();
+                return (
+                  <tr key={key} className={`${theme.rowHover} group`}>
+                    {columns.map((col) => (
+                      <td key={col.key} className={`px-4 py-3 align-middle text-sm text-foreground ${col.className || ''}`}>
+                        {col.render ? col.render(row) : ((row as unknown as Record<string, unknown>)[col.key] as ReactNode)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

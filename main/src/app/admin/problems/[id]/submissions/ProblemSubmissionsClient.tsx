@@ -87,11 +87,16 @@ export default function ProblemSubmissionsClient({
                         <p className="text-sm text-text-muted mt-1">View and manage user submissions for this problem.</p>
                     </div>
 
-                    {submissions.length === 0 ? (
-                        <p className="text-sm text-text-muted text-center py-8">No submissions found for this problem.</p>
-                    ) : (
-                        <DataTable<Row> columns={columns} rows={submissions} rowKey={(r) => r.id} />
-                    )}
+                    <div className="glass-panel overflow-hidden">
+                        <div className="bg-surface-2 px-4 py-3 border-b border-border">
+                            <h2 className="text-sm font-semibold text-foreground">All Submissions</h2>
+                        </div>
+                        {submissions.length === 0 ? (
+                            <p className="text-sm text-text-muted text-center py-8">No submissions found for this problem.</p>
+                        ) : (
+                            <DataTable<Row> columns={columns} rows={submissions} rowKey={(r) => r.id} pageSize={20} />
+                        )}
+                    </div>
                 </div>
 
                 {/* View Code Modal */}

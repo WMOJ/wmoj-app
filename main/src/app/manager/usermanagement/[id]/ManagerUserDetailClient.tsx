@@ -265,11 +265,16 @@ export default function ManagerUserDetailClient({
               <h2 className="text-base font-semibold text-foreground">Submissions</h2>
               <span className="text-xs text-text-muted font-mono">{totalSubmissions} total</span>
             </div>
-            {totalSubmissions > 0 ? (
-              <DataTable<Row> columns={columns} rows={initialSubmissions} rowKey={(r) => r.id} />
-            ) : (
-              <p className="text-sm text-text-muted py-6 text-center">No submissions found for this user.</p>
-            )}
+            <div className="glass-panel overflow-hidden">
+              <div className="bg-surface-2 px-4 py-3 border-b border-border">
+                <h2 className="text-sm font-semibold text-foreground">Submissions</h2>
+              </div>
+              {totalSubmissions > 0 ? (
+                <DataTable<Row> columns={columns} rows={initialSubmissions} rowKey={(r) => r.id} pageSize={20} />
+              ) : (
+                <p className="text-sm text-text-muted py-8 text-center">No submissions found for this user.</p>
+              )}
+            </div>
           </div>
 
         </div>
