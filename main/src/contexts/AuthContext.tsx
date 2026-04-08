@@ -87,28 +87,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (adminResult.data) {
         updates.push(
-          supabase.from('admins').update({ last_login: now, updated_at: now }).eq('id', currentUser.id)
+          Promise.resolve(supabase.from('admins').update({ last_login: now, updated_at: now }).eq('id', currentUser.id))
         );
       } else if (managerResult.data) {
         updates.push(
-          supabase.from('managers').update({ last_login: now, updated_at: now }).eq('id', currentUser.id)
+          Promise.resolve(supabase.from('managers').update({ last_login: now, updated_at: now }).eq('id', currentUser.id))
         );
       }
 
       if (!userResult.data) {
         // New user: insert then fetch profile (fetchUserProfile clears profileLoading)
         updates.push(
-          supabase.from('users').insert({
+          Promise.resolve(supabase.from('users').insert({
             id: currentUser.id,
             username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
             email: currentUser.email || '',
             created_at: currentUser.created_at,
             last_login: now,
-          }).then(() => fetchUserProfile(currentUser.id))
+          })).then(() => fetchUserProfile(currentUser.id))
         );
       } else {
         updates.push(
-          supabase.from('users').update({ last_login: now, updated_at: now }).eq('id', currentUser.id)
+          Promise.resolve(supabase.from('users').update({ last_login: now, updated_at: now }).eq('id', currentUser.id))
         );
       }
 
