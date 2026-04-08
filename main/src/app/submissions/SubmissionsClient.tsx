@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Pagination from '@/components/Pagination';
 import type { SubmissionRow, SubmissionStats } from './page';
 
@@ -150,8 +150,14 @@ export default function SubmissionsClient({
   fetchError,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [problemInput, setProblemInput] = useState(currentProblemSearch);
   const [userInput, setUserInput] = useState(currentUserSearch);
+  const [isStatusLoading, setIsStatusLoading] = useState(false);
+
+  useEffect(() => {
+    setIsStatusLoading(false);
+  }, [searchParams]);
   const problemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -185,6 +191,7 @@ export default function SubmissionsClient({
   };
 
   const handleStatusChange = (value: 'all' | 'passed' | 'failed') => {
+    setIsStatusLoading(true);
     router.replace(`?${buildParams({ status: value })}`);
   };
 
@@ -315,20 +322,34 @@ export default function SubmissionsClient({
 
             <div className="space-y-1">
               <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Status</label>
-              <div className="flex rounded-md overflow-hidden border border-border text-xs font-medium">
-                {(['all', 'passed', 'failed'] as const).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => handleStatusChange(s)}
-                    className={`flex-1 py-1.5 capitalize transition-colors ${
-                      currentStatusFilter === s
-                        ? 'bg-brand-primary text-white'
-                        : 'bg-surface-2 text-text-muted hover:text-foreground hover:bg-surface-3'
-                    }`}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex rounded-md overflow-hidden border border-border text-xs font-medium">
+                  {(['all', 'passed', 'failed'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => handleStatusChange(s)}
+                      className={`flex-1 py-1.5 capitalize transition-colors ${
+                        currentStatusFilter === s
+                          ? 'bg-brand-primary text-white'
+                          : 'bg-surface-2 text-text-muted hover:text-foreground hover:bg-surface-3'
+                      }`}
+                    >
+                      {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                {isStatusLoading && (
+                  <svg
+                    className="animate-spin shrink-0 text-brand-primary"
+                    width={14}
+                    height={14}
+                    viewBox="0 0 14 14"
+                    fill="none"
                   >
-                    {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-                  </button>
-                ))}
+                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+                    <path d="M7 1.5A5.5 5.5 0 0 1 12.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                )}
               </div>
             </div>
           </div>
