@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export const Header = () => {
-    const { user, profile, userRole, signOut } = useAuth();
+    const { user, profile, userRole, profileLoading, signOut } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
@@ -29,10 +29,10 @@ export const Header = () => {
 
     if (!user) return null;
 
-    const displayName = profile?.username || user.user_metadata?.username || user.email || "User";
+    const displayName = profile?.username || user.email || "User";
     const initial = displayName.charAt(0).toUpperCase();
 
-    const switchButton = (() => {
+    const switchButton = profileLoading ? null : (() => {
         if (userRole === 'admin') {
             if (pathname.startsWith('/admin')) {
                 return { label: 'Switch to User View', path: '/' };
@@ -46,22 +46,32 @@ export const Header = () => {
             return { label: 'Switch to Manager Panel', path: '/manager/dashboard' };
         }
         return null;
-    })();
+    })() : null;
 
     return (
         <header className="sticky top-0 z-40 h-14 border-b border-border bg-background flex items-center justify-end px-6 gap-3">
             <ThemeToggle />
             <div className="relative" ref={menuRef}>
                 <button
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    onClick={() => !profileLoading && setIsMenuOpen(!isMenuOpen)}
+                    disabled={profileLoading}
                     className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface-2 text-sm"
                 >
-                    <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
-                        {initial}
-                    </div>
-                    <span className="font-medium text-foreground hidden sm:block">
-                        {displayName}
-                    </span>
+                    {profileLoading ? (
+                        <div className="flex items-center gap-2.5 animate-pulse">
+                            <div className="w-7 h-7 rounded-lg bg-surface-2" />
+                            <div className="hidden sm:block w-20 h-3.5 rounded bg-surface-2" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
+                                {initial}
+                            </div>
+                            <span className="font-medium text-foreground hidden sm:block">
+                                {displayName}
+                            </span>
+                        </>
+                    )}
                     <svg
                         className={`w-3.5 h-3.5 text-text-muted ${isMenuOpen ? "rotate-180" : ""}`}
                         fill="none"

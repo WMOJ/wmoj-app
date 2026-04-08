@@ -80,7 +80,7 @@ const NavItem = ({
 
 export const UserNavbar = () => {
     const pathname = usePathname();
-    const { user, profile, userRole, signOut } = useAuth();
+    const { user, profile, userRole, profileLoading, signOut } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
@@ -101,11 +101,11 @@ export const UserNavbar = () => {
     };
 
     const displayName = user
-        ? (profile?.username || user.user_metadata?.username || user.email || "User")
+        ? (profile?.username || user.email || "User")
         : null;
     const initial = displayName ? displayName.charAt(0).toUpperCase() : null;
 
-    const switchButton = user ? (() => {
+    const switchButton = (user && !profileLoading) ? (() => {
         if (userRole === "admin") return { label: "Switch to Admin Panel", path: "/admin/dashboard" };
         if (userRole === "manager") return { label: "Switch to Manager Panel", path: "/manager/dashboard" };
         return null;
@@ -137,15 +137,25 @@ export const UserNavbar = () => {
             {user ? (
                 <div className="relative" ref={menuRef}>
                     <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        onClick={() => !profileLoading && setIsMenuOpen(!isMenuOpen)}
+                        disabled={profileLoading}
                         className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/10 text-sm"
                     >
-                        <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
-                            {initial}
-                        </div>
-                        <span className="font-medium text-foreground hidden sm:block">
-                            {displayName}
-                        </span>
+                        {profileLoading ? (
+                            <div className="flex items-center gap-2.5 animate-pulse">
+                                <div className="w-7 h-7 rounded-lg bg-surface-2" />
+                                <div className="hidden sm:block w-20 h-3.5 rounded bg-surface-2" />
+                            </div>
+                        ) : (
+                            <>
+                                <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
+                                    {initial}
+                                </div>
+                                <span className="font-medium text-foreground hidden sm:block">
+                                    {displayName}
+                                </span>
+                            </>
+                        )}
                         <svg
                             className={`w-3.5 h-3.5 text-text-muted transition-transform ${isMenuOpen ? "rotate-180" : ""}`}
                             fill="none"
