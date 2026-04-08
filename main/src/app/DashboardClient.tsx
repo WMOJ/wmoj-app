@@ -86,7 +86,7 @@ export default function DashboardClient({
                   <div key={post.id} className="p-6">
                     <h3 className="text-xl font-semibold text-brand-primary mb-1">{post.title}</h3>
                     <div className="text-sm text-text-muted mb-4 pb-4 border-b border-border/50">
-                      <span className="font-medium text-foreground">⭐ {username || 'Unknown'}</span> posted {formatTimeAgo(post.date_posted)}
+                      <span className="font-medium text-foreground">{username || 'Unknown'}</span> posted {formatTimeAgo(post.date_posted)}
                     </div>
                     <div className="prose dark:prose-invert max-w-none text-sm">
                       <MarkdownRenderer content={post.content} />
