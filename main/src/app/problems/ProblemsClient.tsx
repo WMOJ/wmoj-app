@@ -60,17 +60,11 @@ export default function ProblemsClient({
     return initialProblems.filter(p => p.name.toLowerCase().includes(q) || (p.content || '').toLowerCase().includes(q));
   }, [initialProblems, search]);
 
-  const renderDifficulty = (difficultyStr: string | null | undefined) => {
-    const diffStr = difficultyStr || 'Easy';
-    const variant = diffStr.toLowerCase() === 'hard' ? 'error' :
-      diffStr.toLowerCase() === 'medium' ? 'warning' : 'success';
-    return <Badge variant={variant as any}>{diffStr}</Badge>;
-  };
-
   const columns: Array<DataTableColumn<Problem>> = [
     { key: 'name', header: 'Problem', className: 'w-[50%]', sortable: true, sortAccessor: (r) => r.name.toLowerCase(), render: (r) => <span className="text-foreground font-medium text-sm">{r.name}</span> },
     {
-      key: 'difficulty', header: 'Difficulty', className: 'w-[15%]', render: (r) => renderDifficulty(r.difficulty)
+      key: 'points', header: 'Points', className: 'w-[15%]', sortable: true, sortAccessor: (r) => r.points,
+      render: (r) => <span className="text-foreground font-mono text-sm">{r.points} pts</span>
     },
     {
       key: 'status', header: 'Status', className: 'w-[15%]', render: (r) => {
@@ -162,7 +156,7 @@ export default function ProblemsClient({
                       {i + 1}. {problem.name}
                     </Link>
                     <div className="shrink-0 flex items-center gap-2">
-                      {renderDifficulty(problem.difficulty)}
+                      <span className="text-sm font-mono text-text-muted">{problem.points} pts</span>
                     </div>
                   </div>
                 ))

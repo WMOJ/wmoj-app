@@ -78,13 +78,8 @@ export default function ProblemDetailClient({ problem, initialBestSummary }: Pro
                   <span className="text-foreground font-mono">{problem.input.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-text-muted">Difficulty</span>
-                  <Badge variant={
-                    (problem.difficulty?.toLowerCase() === 'hard' ? 'error' :
-                      problem.difficulty?.toLowerCase() === 'medium' ? 'warning' : 'success') as any
-                  }>
-                    {problem.difficulty || 'Easy'}
-                  </Badge>
+                  <span className="text-text-muted">Points</span>
+                  <span className="text-foreground font-mono">{problem.points} pts</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-text-muted">Time Limit</span>

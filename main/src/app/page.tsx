@@ -21,7 +21,7 @@ export interface CompactContest {
 export interface CompactProblem {
   id: string;
   name: string;
-  difficulty: string;
+  points: number;
   created_at: string;
 }
 
@@ -45,7 +45,7 @@ export default async function HomePage() {
       .eq('is_active', true),
     supabase
       .from('problems')
-      .select('id, name, difficulty, created_at')
+      .select('id, name, points, created_at')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(5)

@@ -26,7 +26,7 @@ export default async function ManageProblemsPage() {
       .select('id,name'),
     supabase
       .from('problems')
-      .select('id,name,contest,is_active,updated_at,created_at')
+      .select('id,name,contest,is_active,updated_at,created_at,points')
       .eq('created_by', userId)
   ]);
 

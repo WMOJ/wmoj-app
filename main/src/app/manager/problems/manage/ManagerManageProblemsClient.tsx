@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 
 interface ProblemRow {
   id: string; name: string; contest: string | null; contest_name?: string | null;
-  is_active: boolean | null; created_at: string; updated_at: string; difficulty?: string;
+  is_active: boolean | null; created_at: string; updated_at: string; points: number;
 }
 
 export default function ManagerManageProblemsClient({

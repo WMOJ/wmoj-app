@@ -22,7 +22,7 @@ export default async function ManagerManageProblemsPage() {
     { data: problemsData }
   ] = await Promise.all([
     supabase.from('contests').select('id,name'),
-    supabase.from('problems').select('id,name,contest,is_active,updated_at,created_at')
+    supabase.from('problems').select('id,name,contest,is_active,updated_at,created_at,points')
   ]);
 
   const contests = contestsData || [];

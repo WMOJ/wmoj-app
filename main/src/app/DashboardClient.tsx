@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { NewsPost, CompactContest, CompactProblem } from './page';
 import { formatTimeUntil } from '@/utils/contestStatus';
-import { Badge } from '@/components/ui/Badge';
+
 
 interface DashboardClientProps {
   initialNewsPosts: NewsPost[];
@@ -54,14 +54,6 @@ export default function DashboardClient({
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d ago`;
     return new Date(timestamp).toLocaleDateString();
-  };
-
-  const renderDifficulty = (difficulty: string) => {
-    const d = difficulty.toLowerCase();
-    if (d === 'easy') return <Badge variant="success">Easy</Badge>;
-    if (d === 'medium') return <Badge variant="warning">Medium</Badge>;
-    if (d === 'hard') return <Badge variant="error">Hard</Badge>;
-    return <Badge variant="neutral">{difficulty || 'Unknown'}</Badge>;
   };
 
   return (
@@ -175,7 +167,7 @@ export default function DashboardClient({
                     {problem.name}
                   </Link>
                   <div className="shrink-0">
-                    {renderDifficulty(problem.difficulty)}
+                    <span className="text-sm font-mono text-text-muted">{problem.points} pts</span>
                   </div>
                 </div>
               ))
