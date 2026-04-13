@@ -129,12 +129,12 @@ export const UserNavbar = () => {
                     <Link
                         href="/about"
                         className={`relative flex items-center gap-2 px-3 h-full text-sm font-medium transition-colors ${
-                            pathname === "/about" || pathname.startsWith("/about/") || pathname === "/status" || pathname === "/tips"
+                            pathname === "/about" || pathname.startsWith("/about/") || pathname === "/status" || pathname === "/tips" || pathname === "/pointsystem"
                                 ? "text-foreground"
                                 : "text-text-muted hover:text-foreground"
                         }`}
                     >
-                        <span className={pathname === "/about" || pathname.startsWith("/about/") || pathname === "/status" || pathname === "/tips" ? "text-brand-primary" : ""}>
+                        <span className={pathname === "/about" || pathname.startsWith("/about/") || pathname === "/status" || pathname === "/tips" || pathname === "/pointsystem" ? "text-brand-primary" : ""}>
                             <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                             </svg>
@@ -148,6 +148,9 @@ export const UserNavbar = () => {
                             </Link>
                             <Link href="/tips" className="block w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 rounded-lg transition-colors">
                                 Tips
+                            </Link>
+                            <Link href="/pointsystem" className="block w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 rounded-lg transition-colors">
+                                Points
                             </Link>
                             <a href="https://github.com/WMOJ" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 rounded-lg transition-colors">
                                 GitHub
