@@ -48,9 +48,10 @@ const sanitizeOptions: SanitizeSchema = (() => {
   const spanExisting = getAttrArray(base, 'span');
   const mathExisting = getAttrArray(base, 'math');
   const annotationExisting = getAttrArray(base, 'annotation');
+  const imgExisting = getAttrArray(base, 'img');
   return {
     ...base,
-    tagNames: Array.from(new Set([...(base.tagNames || []), ...katexAllowedTags])),
+    tagNames: Array.from(new Set([...(base.tagNames || []), ...katexAllowedTags, 'img'])),
     attributes: {
       ...(base.attributes || {}),
       span: [
@@ -63,6 +64,7 @@ const sanitizeOptions: SanitizeSchema = (() => {
       ],
       math: [...mathExisting, 'display'],
       annotation: [...annotationExisting, 'encoding'],
+      img: [...imgExisting, 'src', 'alt', 'size'],
     }
   };
 })();
@@ -154,6 +156,20 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
               {children}
             </a>
           ),
+          img: ({ src, alt, node }) => {
+            const sizeAttr = node?.properties?.size;
+            const widthPercent = sizeAttr ? parseInt(String(sizeAttr), 10) : 100;
+            return (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={src}
+                alt={alt || ''}
+                style={{ width: `${widthPercent}%`, height: 'auto' }}
+                className="rounded-lg my-3 max-w-full"
+                loading="lazy"
+              />
+            );
+          },
           strong: ({ children }) => (
             <strong className="font-semibold text-foreground">{children}</strong>
           ),

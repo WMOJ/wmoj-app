@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import MDEditor, { commands } from '@uiw/react-md-editor';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { useTheme } from '@/contexts/ThemeContext';
+import { supabase } from '@/lib/supabase';
 import '@uiw/react-md-editor/markdown-editor.css';
 
 interface MarkdownEditorProps {
@@ -24,7 +25,61 @@ export function MarkdownEditor({
   label = "Problem Description"
 }: MarkdownEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const { theme } = useTheme();
+
+  const handlePaste = useCallback(async (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = event.clipboardData?.files;
+    if (!files || files.length === 0) return;
+
+    const imageFile = Array.from(files).find((f: File) => f.type.startsWith('image/'));
+    if (!imageFile) return;
+
+    event.preventDefault();
+
+    if (imageFile.size > 5 * 1024 * 1024) {
+      alert('Image too large. Maximum size is 5MB.');
+      return;
+    }
+
+    const textarea = event.target as HTMLTextAreaElement;
+    const cursorPos = textarea.selectionStart;
+
+    setIsUploading(true);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        alert('You must be logged in to upload images.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', imageFile);
+
+      const res = await fetch('/api/upload/problem-image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert(json.error || 'Failed to upload image.');
+        return;
+      }
+
+      const imgTag = `<img size="100" src="${json.url}" />`;
+      const newValue = value.slice(0, cursorPos) + imgTag + value.slice(cursorPos);
+      onChange(newValue);
+    } catch {
+      alert('Unexpected error uploading image.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [value, onChange]);
 
   return (
     <div className={`markdown-editor ${className}`}>
@@ -54,7 +109,7 @@ export function MarkdownEditor({
         </div>
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-lg overflow-hidden relative">
         {!isPreview && (
           <MDEditor
             value={value}
@@ -66,6 +121,8 @@ export function MarkdownEditor({
             visibleDragbar={false}
             textareaProps={{
               placeholder,
+              readOnly: isUploading,
+              onPaste: handlePaste as unknown as React.ClipboardEventHandler<HTMLTextAreaElement>,
               style: {
                 fontSize: 14,
                 fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
@@ -102,6 +159,15 @@ export function MarkdownEditor({
             <MarkdownRenderer content={value} />
           </div>
         )}
+        {isUploading && (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-surface-1 border border-border rounded-md px-2.5 py-1.5 text-xs text-text-muted shadow-sm z-10">
+            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Uploading image…
+          </div>
+        )}
       </div>
 
       <div className="mt-2 text-xs text-text-muted">
@@ -115,6 +181,7 @@ export function MarkdownEditor({
           <li>Use <code>-</code> or <code>*</code> for lists</li>
           <li>Inline math with <code>$f(x)=x^2$</code></li>
           <li>Block math with <code>{'$$\\sum_{i=1}^n i^2$$'}</code></li>
+          <li>Paste images from clipboard to embed them</li>
         </ul>
       </div>
     </div>
