@@ -25,19 +25,26 @@ export default function ManagerManageProblemsClient({
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [sidebarSearch, setSidebarSearch] = useState('');
   const [availableContests] = useState<{ id: string, name: string }[]>(initialContests);
   const token = session?.access_token;
 
-  const filteredProblems = useMemo(() => {
+  const pendingProblems = useMemo(() => {
     const q = search.trim().toLowerCase();
     return problems.filter(p => {
-      if (filter === 'active' && !p.is_active) return false;
-      if (filter === 'inactive' && p.is_active) return false;
+      if (p.is_active) return false;
       if (!q) return true;
       return p.name.toLowerCase().includes(q) || (p.contest_name || '').toLowerCase().includes(q);
     });
-  }, [problems, filter, search]);
+  }, [problems, search]);
+
+  const allProblems = useMemo(() => {
+    const q = sidebarSearch.trim().toLowerCase();
+    return problems.filter(p => {
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q) || (p.contest_name || '').toLowerCase().includes(q);
+    });
+  }, [problems, sidebarSearch]);
 
   const toggleActive = async (p: ProblemRow) => {
     try {
@@ -58,8 +65,6 @@ export default function ManagerManageProblemsClient({
     } catch (e: unknown) { setActionMessage(e instanceof Error ? e.message : 'Failed to delete'); }
   };
 
-  const filterOptions = ['all', 'active', 'inactive'] as const;
-
   type Row = ProblemRow;
   const columns: Array<DataTableColumn<Row>> = [
     { key: 'name', header: 'Name', className: 'w-3/12', sortable: true, sortAccessor: (r) => r.name.toLowerCase(), render: (r) => <span className="text-foreground font-medium">{r.name}</span> },
@@ -78,13 +83,25 @@ export default function ManagerManageProblemsClient({
     },
   ];
 
+  const sidebarColumns: Array<DataTableColumn<Row>> = [
+    {
+      key: 'name', header: 'Name', className: 'w-3/4', sortable: true,
+      sortAccessor: (r) => r.name.toLowerCase(),
+      render: (r) => <span className="text-foreground text-xs font-medium truncate block max-w-[160px]">{r.name}</span>,
+    },
+    {
+      key: 'status', header: 'Status', className: 'w-1/4',
+      render: (r) => <Badge variant={r.is_active ? 'success' : 'warning'}>{r.is_active ? 'Active' : 'Inactive'}</Badge>,
+    },
+  ];
+
   return (
     <AuthGuard requireAuth allowAuthenticated>
       <ManagerGuard>
         <div className="w-full space-y-6">
           <div>
             <h1 className="text-xl font-semibold text-foreground">Manage Problems</h1>
-            <p className="text-sm text-text-muted mt-1">Edit, activate/deactivate, or delete problems.</p>
+            <p className="text-sm text-text-muted mt-1">Review and approve problems created by admins.</p>
           </div>
 
           {actionMessage && (
@@ -95,26 +112,42 @@ export default function ManagerManageProblemsClient({
           )}
           {error && <div className="text-error text-sm">{error}</div>}
 
-          <div className="flex flex-col md:flex-row md:items-center gap-3">
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or contest..." className="flex-1 h-9 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
-            <div className="flex items-center gap-1.5">
-              {filterOptions.map(f => (
-                <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-md text-sm border capitalize ${filter === f ? 'text-brand-primary border-brand-primary/30 bg-brand-primary/10' : 'text-text-muted border-border hover:bg-surface-2'}`}>
-                  {f}
-                </button>
-              ))}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            {/* Primary: Pending Review */}
+            <div className="lg:col-span-3 space-y-4">
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search pending problems..." className="w-full h-9 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
+              <div className="glass-panel overflow-hidden">
+                <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">Pending Review</h2>
+                  <span className="text-xs text-text-muted font-mono">{pendingProblems.length} item{pendingProblems.length !== 1 ? 's' : ''}</span>
+                </div>
+                {pendingProblems.length === 0 ? (
+                  <p className="text-sm text-text-muted text-center py-8">No pending problems. All problems are active.</p>
+                ) : (
+                  <DataTable<Row> columns={columns} rows={pendingProblems} rowKey={(r) => r.id} pageSize={15} />
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="glass-panel overflow-hidden">
-            <div className="bg-surface-2 px-4 py-3 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">All Problems</h2>
+            {/* Sidebar: All Problems */}
+            <div className="lg:col-span-1">
+              <div className="glass-panel overflow-hidden sticky top-20">
+                <div className="bg-surface-2 px-4 py-3 border-b border-border">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-foreground">All Problems</h2>
+                    <span className="text-xs text-text-muted font-mono">{allProblems.length}</span>
+                  </div>
+                </div>
+                <div className="px-3 pt-3">
+                  <input value={sidebarSearch} onChange={e => setSidebarSearch(e.target.value)} placeholder="Search..." className="w-full h-8 px-2.5 bg-surface-2 border border-border rounded-md text-xs text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
+                </div>
+                {allProblems.length === 0 ? (
+                  <p className="text-xs text-text-muted text-center py-6">No problems found.</p>
+                ) : (
+                  <DataTable<Row> columns={sidebarColumns} rows={allProblems} rowKey={(r) => r.id} pageSize={10} />
+                )}
+              </div>
             </div>
-            {filteredProblems.length === 0 ? (
-              <p className="text-sm text-text-muted text-center py-8">No problems match your filters.</p>
-            ) : (
-              <DataTable<Row> columns={columns} rows={filteredProblems} rowKey={(r) => r.id} pageSize={20} />
-            )}
           </div>
         </div>
       </ManagerGuard>
