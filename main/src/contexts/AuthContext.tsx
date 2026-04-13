@@ -116,10 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     try {
-      // Safety timeout: if DB queries hang, fall through after 8 seconds
+      // Safety timeout: if DB queries hang, fall through after 4 seconds
       await Promise.race([
         doSetup(),
-        new Promise<void>(resolve => setTimeout(resolve, 8000)),
+        new Promise<void>(resolve => setTimeout(resolve, 4000)),
       ]);
     } catch (error) {
       console.error('Error in ensureUserSetup:', error);
@@ -141,67 +141,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (!isMounted) return;
-
-        if (error) console.error('getSession error:', error);
-
-        const currentUser = session?.user ?? null;
-        setSession(session);
-        setUser(currentUser);
-
-        // Clear loading as soon as the session is known.
-        // Profile/role fetching continues in the background;
-        // individual guards handle their own brief loading states.
-        setLoading(false);
-
-        if (currentUser) {
-          await ensureUserSetup(currentUser);
-        } else {
-          setProfileLoading(false);
-        }
-      } catch (e) {
-        console.error('Auth initialization error:', e);
-        if (isMounted) {
-          setLoading(false);
-          setProfileLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-
-    // Safety net: if getSession() itself hangs (e.g. stale navigator lock),
-    // force loading off after 5 seconds so the app is never permanently stuck.
-    const safetyTimeout = setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, 5000);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Use only onAuthStateChange (Supabase recommended pattern).
+    // The callback is intentionally NOT async — ensureUserSetup is called
+    // fire-and-forget to avoid a circular deadlock: Supabase's _initialize()
+    // awaits all onAuthStateChange callbacks via _notifyAllSubscribers, but
+    // ensureUserSetup's PostgREST queries call getSession() which awaits
+    // initializePromise (i.e. _initialize() completing). Awaiting here would
+    // create an unresolvable circular wait, broken only by the 8-second
+    // safety timeout — causing the 30+ second profile loading delay.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
 
       const currentUser = session?.user ?? null;
       setSession(session);
       setUser(currentUser);
 
+      if (event === 'INITIAL_SESSION') {
+        setLoading(false);
+      }
+
       if (currentUser && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
         if (event === 'SIGNED_IN') {
           setProfileLoading(true);
           setupInProgressRef.current = null; // allow re-run on fresh sign-in
         }
-        await ensureUserSetup(currentUser);
+        ensureUserSetup(currentUser).catch((err) => {
+          console.error('ensureUserSetup error:', err);
+        });
       } else if (event === 'INITIAL_SESSION' && !currentUser) {
         setProfileLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
         setUserRole(null);
         setUserDashboardPath(null);
-        setProfileLoading(true);
+        setProfileLoading(false);
         setupInProgressRef.current = null;
       }
     });
+
+    // Safety net: if INITIAL_SESSION never fires (e.g. stale navigator lock),
+    // force loading off after 5 seconds so the app is never permanently stuck.
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted) {
+        setLoading(false);
+        setProfileLoading(false);
+      }
+    }, 5000);
 
     return () => {
       isMounted = false;
