@@ -48,6 +48,21 @@ interface ContestStatusInput {
  * - ongoing:   is_active = true, starts_at <= now <= ends_at
  * - virtual:   is_active = true, now > ends_at  (or no time window set)
  */
+/**
+ * Checks whether a contest is currently in virtual status by fetching it from the database.
+ * Useful on server-side to gate access for contest problems.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function isContestVirtual(supabase: any, contestId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('contests')
+    .select('is_active, starts_at, ends_at')
+    .eq('id', contestId)
+    .single();
+  if (!data) return false;
+  return getContestStatus(data) === 'virtual';
+}
+
 export function getContestStatus(contest: ContestStatusInput): ContestStatus {
   if (!contest.is_active) return 'inactive';
 

@@ -13,9 +13,10 @@ import { Badge } from '@/components/ui/Badge';
 interface ProblemDetailClientProps {
   problem: Problem;
   initialBestSummary: { total: number; passed: number; failed: number } | null;
+  isVirtualContest?: boolean;
 }
 
-export default function ProblemDetailClient({ problem, initialBestSummary }: ProblemDetailClientProps) {
+export default function ProblemDetailClient({ problem, initialBestSummary, isVirtualContest }: ProblemDetailClientProps) {
   const router = useRouter();
   const { user, profile } = useAuth();
   const { isActive, contestId } = useCountdown();
@@ -23,11 +24,11 @@ export default function ProblemDetailClient({ problem, initialBestSummary }: Pro
   const bestSummary = initialBestSummary;
 
   useEffect(() => {
-    if (!problem?.contest) return;
+    if (!problem?.contest || isVirtualContest) return;
     const countdownResolved = isActive !== undefined && (contestId !== null || !isActive);
     if (!countdownResolved) return;
     if (!isActive || (contestId && contestId !== problem.contest)) router.replace('/contests');
-  }, [isActive, contestId, problem?.contest, router]);
+  }, [isActive, contestId, problem?.contest, router, isVirtualContest]);
 
   const handleSubmitClick = () => {
     if (!user) { setShowAuthPrompt(true); return; }
@@ -41,11 +42,11 @@ export default function ProblemDetailClient({ problem, initialBestSummary }: Pro
         {/* Back */}
         <button
           type="button"
-          onClick={() => router.push(problem?.contest ? `/contests/${problem.contest}` : '/problems')}
+          onClick={() => router.push(problem?.contest && !isVirtualContest ? `/contests/${problem.contest}` : '/problems')}
           className="text-sm text-text-muted hover:text-foreground inline-flex items-center gap-1.5"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" /></svg>
-          Back to {problem?.contest ? 'Contest' : 'Problems'}
+          Back to {problem?.contest && !isVirtualContest ? 'Contest' : 'Problems'}
         </button>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -55,8 +56,8 @@ export default function ProblemDetailClient({ problem, initialBestSummary }: Pro
               {/* Header */}
               <div className="flex flex-wrap items-center gap-3 mb-5">
                 <h1 className="text-lg font-semibold text-foreground">{problem.name}</h1>
-                <Badge variant={problem.contest ? 'info' : 'neutral'}>
-                  {problem.contest ? 'Contest' : 'Standalone'}
+                <Badge variant={problem.contest && !isVirtualContest ? 'info' : 'neutral'}>
+                  {problem.contest && !isVirtualContest ? 'Contest' : 'Standalone'}
                 </Badge>
               </div>
 

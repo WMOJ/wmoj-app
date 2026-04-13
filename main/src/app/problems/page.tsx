@@ -18,10 +18,32 @@ export default async function ProblemsPage({
 
   const supabase = await getServerSupabase();
 
+  // Fetch IDs of virtual contests (ended + active, or no time window)
+  const isoNow = new Date().toISOString();
+  const { data: virtualContestsWithEnd } = await supabase
+    .from('contests')
+    .select('id')
+    .eq('is_active', true)
+    .lt('ends_at', isoNow);
+  const { data: virtualContestsNoWindow } = await supabase
+    .from('contests')
+    .select('id')
+    .eq('is_active', true)
+    .is('starts_at', null)
+    .is('ends_at', null);
+  const virtualIds = [
+    ...(virtualContestsWithEnd || []).map(c => c.id),
+    ...(virtualContestsNoWindow || []).map(c => c.id),
+  ];
+
+  const orFilter = virtualIds.length > 0
+    ? `contest.is.null,contest.in.(${virtualIds.join(',')})`
+    : 'contest.is.null';
+
   const { data: problems, count, error } = await supabase
     .from('problems')
     .select('*', { count: 'exact' })
-    .is('contest', null)
+    .or(orFilter)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .range(from, to);
@@ -60,7 +82,7 @@ export default async function ProblemsPage({
       .from('problems')
       .select('*')
       .in('id', topIds)
-      .is('contest', null)
+      .or(orFilter)
       .eq('is_active', true);
     hotProblems = (hotData || [])
       .map(p => ({ ...p, submission_count: countMap[p.id] || 0 }))

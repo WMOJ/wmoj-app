@@ -1,6 +1,7 @@
 import { getServerSupabase } from '@/lib/supabaseServer';
 import ProblemDetailClient from './ProblemDetailClient';
 import { checkTimerExpiry } from '@/utils/timerCheck';
+import { isContestVirtual } from '@/utils/contestStatus';
 import { redirect } from 'next/navigation';
 
 export default async function ProblemPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,32 +31,37 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
   const { data: authUser } = authResult;
   const user = authUser?.user;
 
+  let virtualContest = false;
   if (problem.contest) {
-    if (!user) {
-      redirect('/problems');
-    }
-    const [participantResult, timerResult] = await Promise.all([
-      supabase
-        .from('contest_participants')
-        .select('user_id')
-        .eq('user_id', user.id)
-        .eq('contest_id', problem.contest)
-        .maybeSingle(),
-      checkTimerExpiry(supabase, user.id, problem.contest)
-    ]);
-      
-    const { data: participant } = participantResult;
-    if (!participant) {
-      redirect('/problems');
-    }
+    virtualContest = await isContestVirtual(supabase, problem.contest);
 
-    const { expired } = timerResult;
-    if (expired) {
-      return (
-        <div className="bg-error/10 border border-error/20 rounded-lg p-4 max-w-6xl mx-auto mt-8">
-          <p className="text-sm text-error mb-2">Contest time has expired</p>
-        </div>
-      );
+    if (!virtualContest) {
+      if (!user) {
+        redirect('/problems');
+      }
+      const [participantResult, timerResult] = await Promise.all([
+        supabase
+          .from('contest_participants')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .eq('contest_id', problem.contest)
+          .maybeSingle(),
+        checkTimerExpiry(supabase, user.id, problem.contest)
+      ]);
+
+      const { data: participant } = participantResult;
+      if (!participant) {
+        redirect('/problems');
+      }
+
+      const { expired } = timerResult;
+      if (expired) {
+        return (
+          <div className="bg-error/10 border border-error/20 rounded-lg p-4 max-w-6xl mx-auto mt-8">
+            <p className="text-sm text-error mb-2">Contest time has expired</p>
+          </div>
+        );
+      }
     }
   }
 
@@ -80,5 +86,5 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  return <ProblemDetailClient problem={problem} initialBestSummary={bestSummary} />;
+  return <ProblemDetailClient problem={problem} initialBestSummary={bestSummary} isVirtualContest={virtualContest} />;
 }

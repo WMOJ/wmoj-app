@@ -5,10 +5,33 @@ export async function GET() {
   try {
     console.log('API: Fetching standalone problems...');
     const supabase = await getServerSupabase();
+
+    // Include problems from virtual contests (ended + active, or no time window)
+    const isoNow = new Date().toISOString();
+    const { data: virtualContestsWithEnd } = await supabase
+      .from('contests')
+      .select('id')
+      .eq('is_active', true)
+      .lt('ends_at', isoNow);
+    const { data: virtualContestsNoWindow } = await supabase
+      .from('contests')
+      .select('id')
+      .eq('is_active', true)
+      .is('starts_at', null)
+      .is('ends_at', null);
+    const virtualIds = [
+      ...(virtualContestsWithEnd || []).map((c: { id: string }) => c.id),
+      ...(virtualContestsNoWindow || []).map((c: { id: string }) => c.id),
+    ];
+
+    const orFilter = virtualIds.length > 0
+      ? `contest.is.null,contest.in.(${virtualIds.join(',')})`
+      : 'contest.is.null';
+
     const { data: problems, error } = await supabase
       .from('problems')
       .select('*')
-      .is('contest', null)
+      .or(orFilter)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 

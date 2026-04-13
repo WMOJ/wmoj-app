@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabaseFromToken } from '@/lib/supabaseServer';
 import { checkTimerExpiry } from '@/utils/timerCheck';
+import { isContestVirtual } from '@/utils/contestStatus';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -32,22 +33,27 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const userId = authUser.user.id;
 
     // If problem is part of a contest, ensure user is a participant and timer is valid
+    // (skip enforcement for virtual contests — their problems are standalone-accessible)
     if (problem.contest) {
-      const { data: participant, error: partErr } = await supabase
-        .from('contest_participants')
-        .select('user_id')
-        .eq('user_id', userId)
-        .eq('contest_id', problem.contest)
-        .maybeSingle();
-      if (partErr || !participant) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
+      const virtual = await isContestVirtual(supabase, problem.contest);
 
-      // Check if timer has expired
-      const { expired } = await checkTimerExpiry(supabase, userId, problem.contest);
-      if (expired) {
-        console.log('Timer expired for user', userId, 'in contest', problem.contest, '- submission rejected');
-        return NextResponse.json({ error: 'Contest time has expired' }, { status: 403 });
+      if (!virtual) {
+        const { data: participant, error: partErr } = await supabase
+          .from('contest_participants')
+          .select('user_id')
+          .eq('user_id', userId)
+          .eq('contest_id', problem.contest)
+          .maybeSingle();
+        if (partErr || !participant) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        // Check if timer has expired
+        const { expired } = await checkTimerExpiry(supabase, userId, problem.contest);
+        if (expired) {
+          console.log('Timer expired for user', userId, 'in contest', problem.contest, '- submission rejected');
+          return NextResponse.json({ error: 'Contest time has expired' }, { status: 403 });
+        }
       }
     }
 
