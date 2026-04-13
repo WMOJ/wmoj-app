@@ -281,8 +281,8 @@ export default function ManagerUserDetailClient({
 
         {/* Submission detail modal */}
         {selectedSubmission && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="w-full max-w-4xl bg-surface-1 border border-border rounded-lg flex flex-col max-h-[90vh]">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedSubmission(null)}>
+            <div className="w-full max-w-4xl bg-surface-1 border border-border rounded-lg flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                 <div>
                   <h2 className="text-base font-semibold text-foreground">Submission Details</h2>
