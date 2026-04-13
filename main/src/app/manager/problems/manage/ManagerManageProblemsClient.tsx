@@ -25,7 +25,6 @@ export default function ManagerManageProblemsClient({
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [sidebarSearch, setSidebarSearch] = useState('');
   const [availableContests] = useState<{ id: string, name: string }[]>(initialContests);
   const token = session?.access_token;
 
@@ -39,12 +38,12 @@ export default function ManagerManageProblemsClient({
   }, [problems, search]);
 
   const allProblems = useMemo(() => {
-    const q = sidebarSearch.trim().toLowerCase();
+    const q = search.trim().toLowerCase();
     return problems.filter(p => {
       if (!q) return true;
       return p.name.toLowerCase().includes(q) || (p.contest_name || '').toLowerCase().includes(q);
     });
-  }, [problems, sidebarSearch]);
+  }, [problems, search]);
 
   const toggleActive = async (p: ProblemRow) => {
     try {
@@ -83,18 +82,6 @@ export default function ManagerManageProblemsClient({
     },
   ];
 
-  const sidebarColumns: Array<DataTableColumn<Row>> = [
-    {
-      key: 'name', header: 'Name', className: 'w-3/4', sortable: true,
-      sortAccessor: (r) => r.name.toLowerCase(),
-      render: (r) => <span className="text-foreground text-xs font-medium truncate block max-w-[160px]">{r.name}</span>,
-    },
-    {
-      key: 'status', header: 'Status', className: 'w-1/4',
-      render: (r) => <Badge variant={r.is_active ? 'success' : 'warning'}>{r.is_active ? 'Active' : 'Inactive'}</Badge>,
-    },
-  ];
-
   return (
     <AuthGuard requireAuth allowAuthenticated>
       <ManagerGuard>
@@ -112,42 +99,30 @@ export default function ManagerManageProblemsClient({
           )}
           {error && <div className="text-error text-sm">{error}</div>}
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-            {/* Primary: Pending Review */}
-            <div className="lg:col-span-3 space-y-4">
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search pending problems..." className="w-full h-9 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
-              <div className="glass-panel overflow-hidden">
-                <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-foreground">Pending Review</h2>
-                  <span className="text-xs text-text-muted font-mono">{pendingProblems.length} item{pendingProblems.length !== 1 ? 's' : ''}</span>
-                </div>
-                {pendingProblems.length === 0 ? (
-                  <p className="text-sm text-text-muted text-center py-8">No pending problems. All problems are active.</p>
-                ) : (
-                  <DataTable<Row> columns={columns} rows={pendingProblems} rowKey={(r) => r.id} pageSize={15} />
-                )}
-              </div>
-            </div>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or contest..." className="w-full h-9 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
 
-            {/* Sidebar: All Problems */}
-            <div className="lg:col-span-1">
-              <div className="glass-panel overflow-hidden sticky top-20">
-                <div className="bg-surface-2 px-4 py-3 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-foreground">All Problems</h2>
-                    <span className="text-xs text-text-muted font-mono">{allProblems.length}</span>
-                  </div>
-                </div>
-                <div className="px-3 pt-3">
-                  <input value={sidebarSearch} onChange={e => setSidebarSearch(e.target.value)} placeholder="Search..." className="w-full h-8 px-2.5 bg-surface-2 border border-border rounded-md text-xs text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
-                </div>
-                {allProblems.length === 0 ? (
-                  <p className="text-xs text-text-muted text-center py-6">No problems found.</p>
-                ) : (
-                  <DataTable<Row> columns={sidebarColumns} rows={allProblems} rowKey={(r) => r.id} pageSize={10} />
-                )}
-              </div>
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Pending Review</h2>
+              <span className="text-xs text-text-muted font-mono">{pendingProblems.length} item{pendingProblems.length !== 1 ? 's' : ''}</span>
             </div>
+            {pendingProblems.length === 0 ? (
+              <p className="text-sm text-text-muted px-4 py-4">No pending problems. All problems are active.</p>
+            ) : (
+              <DataTable<Row> columns={columns} rows={pendingProblems} rowKey={(r) => r.id} pageSize={15} />
+            )}
+          </div>
+
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">All Problems</h2>
+              <span className="text-xs text-text-muted font-mono">{allProblems.length} total</span>
+            </div>
+            {allProblems.length === 0 ? (
+              <p className="text-sm text-text-muted px-4 py-4">No problems found.</p>
+            ) : (
+              <DataTable<Row> columns={columns} rows={allProblems} rowKey={(r) => r.id} pageSize={20} />
+            )}
           </div>
         </div>
       </ManagerGuard>

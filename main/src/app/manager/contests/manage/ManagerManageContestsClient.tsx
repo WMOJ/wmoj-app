@@ -43,7 +43,6 @@ export default function ManagerManageContestsClient({ initialContests }: { initi
   const [fetchingEditContent, setFetchingEditContent] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [sidebarSearch, setSidebarSearch] = useState('');
   const token = session?.access_token;
 
   const pendingContests = useMemo(() => {
@@ -56,12 +55,12 @@ export default function ManagerManageContestsClient({ initialContests }: { initi
   }, [contests, search]);
 
   const allContests = useMemo(() => {
-    const q = sidebarSearch.trim().toLowerCase();
+    const q = search.trim().toLowerCase();
     return contests.filter(c => {
       if (!q) return true;
       return c.name.toLowerCase().includes(q);
     });
-  }, [contests, sidebarSearch]);
+  }, [contests, search]);
 
   const openEdit = async (c: ContestRow) => {
     setFetchingEditContent(true);
@@ -169,21 +168,6 @@ export default function ManagerManageContestsClient({ initialContests }: { initi
     },
   ];
 
-  const sidebarColumns: Array<DataTableColumn<Row>> = [
-    {
-      key: 'name', header: 'Name', className: 'w-3/4', sortable: true,
-      sortAccessor: (r) => r.name.toLowerCase(),
-      render: (r) => <span className="text-foreground text-xs font-medium truncate block max-w-[160px]">{r.name}</span>,
-    },
-    {
-      key: 'status', header: 'Status', className: 'w-1/4',
-      render: (r) => {
-        const s = getContestStatus({ is_active: !!r.is_active, starts_at: r.starts_at, ends_at: r.ends_at });
-        return <Badge variant={STATUS_VARIANT[s]}>{STATUS_LABEL[s]}</Badge>;
-      },
-    },
-  ];
-
   return (
     <AuthGuard requireAuth allowAuthenticated>
       <ManagerGuard>
@@ -200,42 +184,30 @@ export default function ManagerManageContestsClient({ initialContests }: { initi
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-            {/* Primary: Pending Review */}
-            <div className="lg:col-span-3 space-y-4">
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search pending contests..." className="w-full h-9 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
-              <div className="glass-panel overflow-hidden">
-                <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-foreground">Pending Review</h2>
-                  <span className="text-xs text-text-muted font-mono">{pendingContests.length} item{pendingContests.length !== 1 ? 's' : ''}</span>
-                </div>
-                {pendingContests.length === 0 ? (
-                  <p className="text-sm text-text-muted text-center py-8">No pending contests. All contests are active.</p>
-                ) : (
-                  <DataTable<Row> columns={columns} rows={pendingContests} rowKey={(r) => r.id} pageSize={15} />
-                )}
-              </div>
-            </div>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name..." className="w-full h-9 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
 
-            {/* Sidebar: All Contests */}
-            <div className="lg:col-span-1">
-              <div className="glass-panel overflow-hidden sticky top-20">
-                <div className="bg-surface-2 px-4 py-3 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-foreground">All Contests</h2>
-                    <span className="text-xs text-text-muted font-mono">{allContests.length}</span>
-                  </div>
-                </div>
-                <div className="px-3 pt-3">
-                  <input value={sidebarSearch} onChange={e => setSidebarSearch(e.target.value)} placeholder="Search..." className="w-full h-8 px-2.5 bg-surface-2 border border-border rounded-md text-xs text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20" />
-                </div>
-                {allContests.length === 0 ? (
-                  <p className="text-xs text-text-muted text-center py-6">No contests found.</p>
-                ) : (
-                  <DataTable<Row> columns={sidebarColumns} rows={allContests} rowKey={(r) => r.id} pageSize={10} />
-                )}
-              </div>
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Pending Review</h2>
+              <span className="text-xs text-text-muted font-mono">{pendingContests.length} item{pendingContests.length !== 1 ? 's' : ''}</span>
             </div>
+            {pendingContests.length === 0 ? (
+              <p className="text-sm text-text-muted px-4 py-4">No pending contests. All contests are active.</p>
+            ) : (
+              <DataTable<Row> columns={columns} rows={pendingContests} rowKey={(r) => r.id} pageSize={15} />
+            )}
+          </div>
+
+          <div className="glass-panel overflow-hidden">
+            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">All Contests</h2>
+              <span className="text-xs text-text-muted font-mono">{allContests.length} total</span>
+            </div>
+            {allContests.length === 0 ? (
+              <p className="text-sm text-text-muted px-4 py-4">No contests found.</p>
+            ) : (
+              <DataTable<Row> columns={columns} rows={allContests} rowKey={(r) => r.id} pageSize={20} />
+            )}
           </div>
 
           {editing && (
