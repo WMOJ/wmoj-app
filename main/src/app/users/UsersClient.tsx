@@ -13,6 +13,7 @@ interface UsersClientProps {
   totalPages: number;
   currentPage: number;
   currentSearch: string;
+  currentSort: string;
   fetchError?: string;
 }
 
@@ -21,6 +22,7 @@ export default function UsersClient({
   totalPages,
   currentPage,
   currentSearch,
+  currentSort,
   fetchError,
 }: UsersClientProps) {
   const router = useRouter();
@@ -34,6 +36,7 @@ export default function UsersClient({
       const params = new URLSearchParams();
       if (value.trim()) params.set('search', value.trim());
       params.set('page', '1');
+      if (currentSort !== 'points') params.set('sort', currentSort);
       router.replace(`?${params.toString()}`);
     }, 300);
   };
@@ -42,6 +45,15 @@ export default function UsersClient({
     const params = new URLSearchParams();
     if (currentSearch) params.set('search', currentSearch);
     params.set('page', String(page));
+    if (currentSort !== 'points') params.set('sort', currentSort);
+    return `?${params.toString()}`;
+  };
+
+  const buildSortHref = (sort: string) => {
+    const params = new URLSearchParams();
+    if (currentSearch) params.set('search', currentSearch);
+    params.set('page', '1');
+    if (sort !== 'points') params.set('sort', sort);
     return `?${params.toString()}`;
   };
 
@@ -84,15 +96,28 @@ export default function UsersClient({
                 <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-text-muted">
                   Username
                 </th>
-                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-text-muted w-32 text-right">
-                  Problems
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide w-32 text-right">
+                  <Link
+                    href={buildSortHref('points')}
+                    className={`hover:text-foreground transition-colors ${currentSort === 'points' ? 'text-brand-primary' : 'text-text-muted'}`}
+                  >
+                    Points{currentSort === 'points' ? ' \u25BC' : ''}
+                  </Link>
+                </th>
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide w-32 text-right">
+                  <Link
+                    href={buildSortHref('problems')}
+                    className={`hover:text-foreground transition-colors ${currentSort === 'problems' ? 'text-brand-primary' : 'text-text-muted'}`}
+                  >
+                    Problems{currentSort === 'problems' ? ' \u25BC' : ''}
+                  </Link>
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {initialUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-10 text-center text-text-muted text-sm">
+                  <td colSpan={4} className="px-4 py-10 text-center text-text-muted text-sm">
                     No users found.
                   </td>
                 </tr>
@@ -106,6 +131,9 @@ export default function UsersClient({
                       <Link href={`/users/${user.username}`} className="text-brand-primary hover:underline">
                         {user.username}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-mono text-foreground text-right align-middle">
+                      {Math.round(user.points)}
                     </td>
                     <td className="px-4 py-3 text-sm font-mono text-foreground text-right align-middle">
                       {user.problems_solved}

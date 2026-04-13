@@ -8,6 +8,7 @@ interface ProfileData {
   created_at: string;
   about_me: string | null;
   problems_solved: number;
+  points: number;
   contests_written: number;
   avatarUrl: string;
 }
@@ -23,7 +24,7 @@ export default async function UserProfilePage({
   // Fetch user profile
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, username, created_at, about_me, problems_solved')
+    .select('id, username, created_at, about_me, problems_solved, points')
     .eq('username', username)
     .eq('is_active', true)
     .maybeSingle();
@@ -74,6 +75,7 @@ export default async function UserProfilePage({
     created_at: user.created_at,
     about_me: user.about_me,
     problems_solved: user.problems_solved ?? 0,
+    points: user.points ?? 0,
     contests_written: contestsWritten ?? 0,
     avatarUrl,
   };

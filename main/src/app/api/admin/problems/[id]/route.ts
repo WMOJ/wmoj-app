@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { supabase } = auth;
   const { data, error } = await supabase
     .from('problems')
-    .select('id,name,content,contest,is_active,time_limit,memory_limit,difficulty,input,output,created_at,updated_at')
+    .select('id,name,content,contest,is_active,time_limit,memory_limit,points,input,output,created_at,updated_at')
     .eq('id', id)
     .maybeSingle();
   if (error) {
@@ -49,7 +49,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const updates: Record<string, unknown> = {};
   if (body.name !== undefined) updates.name = body.name;
   if (body.content !== undefined) updates.content = body.content;
-  if (body.difficulty !== undefined) updates.difficulty = body.difficulty;
+  if (body.points !== undefined) {
+    if (typeof body.points !== 'number' || !Number.isInteger(body.points) || body.points < 1) {
+      return NextResponse.json({ error: 'Points must be a positive integer' }, { status: 400 });
+    }
+    updates.points = body.points;
+  }
   if (body.time_limit !== undefined) {
     if (typeof body.time_limit !== 'number' || isNaN(body.time_limit) || body.time_limit <= 0) {
       return NextResponse.json({ error: 'Time limit must be a positive number' }, { status: 400 });

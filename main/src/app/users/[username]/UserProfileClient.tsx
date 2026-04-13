@@ -12,6 +12,7 @@ interface ProfileData {
   created_at: string;
   about_me: string | null;
   problems_solved: number;
+  points: number;
   contests_written: number;
   avatarUrl: string;
 }
@@ -61,6 +62,10 @@ export default function UserProfileClient({ profile, heatmapData }: UserProfileC
           <div className="glass-panel p-4 space-y-3">
             <p className="text-sm text-text-muted">
               <span className="font-semibold text-foreground">{profile.problems_solved}</span> problems solved
+            </p>
+
+            <p className="text-sm text-text-muted">
+              <span className="font-semibold text-foreground">{Math.round(profile.points)}</span> points
             </p>
 
             <Link

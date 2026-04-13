@@ -4,7 +4,7 @@ import { validateSlug } from '@/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, name, content, contest, input, output, timeLimit, memoryLimit, difficulty } = await request.json();
+    const { id, name, content, contest, input, output, timeLimit, memoryLimit, points } = await request.json();
 
     const slugError = validateSlug(id, 'Problem');
     if (slugError) {
@@ -53,6 +53,13 @@ export async function POST(request: NextRequest) {
     if (memoryLimit !== undefined && (typeof memoryLimit !== 'number' || isNaN(memoryLimit) || memoryLimit <= 0)) {
       return NextResponse.json(
         { error: 'Memory limit must be a positive number' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof points !== 'number' || !Number.isInteger(points) || points < 1) {
+      return NextResponse.json(
+        { error: 'Points must be a positive integer' },
         { status: 400 }
       );
     }
@@ -111,7 +118,7 @@ export async function POST(request: NextRequest) {
           is_active: false,
           time_limit: timeLimit || 5000,
           memory_limit: memoryLimit || 256,
-          difficulty: difficulty || 'Easy',
+          points: points,
           created_by: authUser.id
         }
       ])

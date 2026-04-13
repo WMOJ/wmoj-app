@@ -19,7 +19,7 @@ interface ProblemData {
   is_active: boolean | null;
   time_limit: number | null;
   memory_limit: number | null;
-  difficulty: string | null;
+  points: number;
   test_case_count: number;
   created_at: string;
   updated_at: string;
@@ -43,7 +43,7 @@ export default function EditProblemClient({ problem, initialContests }: { proble
     contest: problem.contest || '',
     timeLimit: String(problem.time_limit || 5000),
     memoryLimit: String(problem.memory_limit || 256),
-    difficulty: problem.difficulty || 'Easy',
+    points: String(problem.points),
     is_active: problem.is_active ?? true,
   });
   const [generatorCode, setGeneratorCode] = useState('');
@@ -83,7 +83,7 @@ export default function EditProblemClient({ problem, initialContests }: { proble
         is_active: formData.is_active,
         time_limit: parseInt(formData.timeLimit, 10),
         memory_limit: parseInt(formData.memoryLimit, 10),
-        difficulty: formData.difficulty,
+        points: parseInt(formData.points, 10),
       };
 
       // Only include test cases if new ones were generated
@@ -141,12 +141,8 @@ export default function EditProblemClient({ problem, initialContests }: { proble
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="difficulty" className="block text-sm font-medium text-foreground">Difficulty *</label>
-                <select id="difficulty" name="difficulty" value={formData.difficulty} onChange={handleChange} className={inputClass}>
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
+                <label htmlFor="points" className="block text-sm font-medium text-foreground">Points *</label>
+                <input type="number" id="points" name="points" value={formData.points} onChange={handleChange} required min="1" className={inputClass} placeholder="e.g. 3, 6, 10" />
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="timeLimit" className="block text-sm font-medium text-foreground">Time Limit (ms) *</label>

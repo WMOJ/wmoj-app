@@ -24,7 +24,7 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [contests] = useState<Contest[]>(initialContests);
-  const [formData, setFormData] = useState({ id: '', name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', difficulty: 'Easy' });
+  const [formData, setFormData] = useState({ id: '', name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', points: '' });
   const [generatorCode, setGeneratorCode] = useState('');
   const [genLoading, setGenLoading] = useState(false);
   const [generatedInput, setGeneratedInput] = useState<string[] | null>(null);
@@ -64,12 +64,12 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/manager/problems/create', {
         method: 'POST', headers,
-        body: JSON.stringify({ id: formData.id, name: formData.name, content: formData.content, contest: formData.contest || null, input: generatedInput, output: generatedOutput, timeLimit: parseInt(formData.timeLimit, 10), memoryLimit: parseInt(formData.memoryLimit, 10), difficulty: formData.difficulty })
+        body: JSON.stringify({ id: formData.id, name: formData.name, content: formData.content, contest: formData.contest || null, input: generatedInput, output: generatedOutput, timeLimit: parseInt(formData.timeLimit, 10), memoryLimit: parseInt(formData.memoryLimit, 10), points: parseInt(formData.points, 10) })
       });
       const json = await res.json();
       if (res.ok) {
         setSuccess('Problem created successfully!');
-        setFormData({ id: '', name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', difficulty: 'Easy' });
+        setFormData({ id: '', name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', points: '' });
         setGeneratorCode(''); setGeneratedInput(null); setGeneratedOutput(null); setGenError('');
         setTimeout(() => router.push('/manager/dashboard'), 2000);
       } else { setError(json.error || 'Failed to create problem'); }
@@ -109,12 +109,8 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="difficulty" className="block text-sm font-medium text-foreground">Difficulty *</label>
-                <select id="difficulty" name="difficulty" value={formData.difficulty} onChange={handleChange} className={inputClass}>
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
+                <label htmlFor="points" className="block text-sm font-medium text-foreground">Points *</label>
+                <input type="number" id="points" name="points" value={formData.points} onChange={handleChange} required min="1" className={inputClass} placeholder="e.g. 3, 6, 10" />
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="timeLimit" className="block text-sm font-medium text-foreground">Time Limit (ms) *</label>

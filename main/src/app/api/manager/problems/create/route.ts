@@ -4,7 +4,7 @@ import { validateSlug } from '@/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, name, content, contest, input, output, timeLimit, memoryLimit, difficulty } = await request.json();
+    const { id, name, content, contest, input, output, timeLimit, memoryLimit, points } = await request.json();
 
     const slugError = validateSlug(id, 'Problem');
     if (slugError) {
@@ -53,6 +53,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof points !== 'number' || !Number.isInteger(points) || points < 1) {
+      return NextResponse.json(
+        { error: 'Points must be a positive integer' },
+        { status: 400 }
+      );
+    }
+
     const auth = await getManagerSupabase(request);
     if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const { supabase, user } = auth;
@@ -75,7 +82,7 @@ export async function POST(request: NextRequest) {
           output,
           time_limit: timeLimit || 5000,
           memory_limit: memoryLimit || 256,
-          difficulty: difficulty || 'Easy',
+          points: points,
           created_by: user.id
         }
       ])

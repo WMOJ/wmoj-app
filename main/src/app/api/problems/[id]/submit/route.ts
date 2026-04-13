@@ -106,11 +106,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.warn('[submit] Failed to record submission:', insErr);
     }
 
-    // Increment global problems_solved counter on first solve
+    // Increment global problems_solved counter and recalculate points on first solve
     if (isPassed && isFirstSolve) {
       const { error: rpcErr } = await supabase.rpc('increment_problems_solved', { uid: userId });
       if (rpcErr) {
         console.warn('[submit] Failed to increment problems_solved:', rpcErr);
+      }
+
+      const { error: pointsErr } = await supabase.rpc('recalculate_user_points', { uid: userId });
+      if (pointsErr) {
+        console.warn('[submit] Failed to recalculate points:', pointsErr);
       }
     }
 
