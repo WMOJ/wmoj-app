@@ -13,14 +13,6 @@ export interface UserProfile {
   problems_solved: number;
 }
 
-export const getUserDashboardPath = (userRole: UserRole): string => {
-  switch (userRole) {
-    case 'admin':
-      return '/admin/dashboard';
-    case 'manager':
-      return '/manager/dashboard';
-    case 'regular':
-    default:
-      return '/';
-  }
+export const getUserDashboardPath = (_userRole: UserRole): string => {
+  return '/';
 };
