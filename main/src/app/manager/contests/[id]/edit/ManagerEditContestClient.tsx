@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 import { toLocalDatetimeInput, fromLocalDatetimeInput } from '@/utils/contestStatus';
+import ProblemSearch, { type SearchableProblem } from '@/components/ProblemSearch';
 
 const MarkdownEditor = dynamic(() => import('@/components/MarkdownEditor').then(m => m.MarkdownEditor), { ssr: false });
 
@@ -26,7 +27,7 @@ interface ContestData {
   is_rated: boolean;
 }
 
-export default function ManagerEditContestClient({ contest }: { contest: ContestData }) {
+export default function ManagerEditContestClient({ contest, initialProblems = [] }: { contest: ContestData; initialProblems?: SearchableProblem[] }) {
   const { session } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,7 @@ export default function ManagerEditContestClient({ contest }: { contest: Contest
     ends_at: contest.ends_at ? toLocalDatetimeInput(contest.ends_at) : '',
     is_rated: contest.is_rated,
   });
+  const [selectedProblems, setSelectedProblems] = useState<SearchableProblem[]>(initialProblems);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -70,6 +72,7 @@ export default function ManagerEditContestClient({ contest }: { contest: Contest
           starts_at: formData.starts_at ? fromLocalDatetimeInput(formData.starts_at) : null,
           ends_at: formData.ends_at ? fromLocalDatetimeInput(formData.ends_at) : null,
           is_rated: formData.is_rated,
+          problem_ids: selectedProblems.map(p => p.id),
         })
       });
       const json = await res.json();
@@ -154,6 +157,18 @@ export default function ManagerEditContestClient({ contest }: { contest: Contest
                 Rated Contest
               </label>
               <p className="text-xs text-text-muted">Rated contests will affect player rankings (not yet implemented).</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">Contest Problems</label>
+              <p className="text-xs text-text-muted">Search and select problems to include in this contest</p>
+              <ProblemSearch
+                searchEndpoint="/api/manager/problems/search"
+                accessToken={session?.access_token}
+                selectedProblems={selectedProblems}
+                onSelectedChange={setSelectedProblems}
+                excludeContest={contest.id}
+              />
             </div>
 
             {/* Summary Preview */}

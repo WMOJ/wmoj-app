@@ -28,5 +28,10 @@ export default async function EditContestPage({ params }: { params: Promise<{ id
     redirect('/admin/contests/manage');
   }
 
-  return <EditContestClient contest={contestData} />;
+  const { data: contestProblems } = await supabase
+    .from('problems')
+    .select('id, name, points, difficulty')
+    .eq('contest', id);
+
+  return <EditContestClient contest={contestData} initialProblems={contestProblems ?? []} />;
 }

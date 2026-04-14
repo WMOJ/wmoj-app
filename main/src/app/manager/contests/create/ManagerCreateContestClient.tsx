@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 import { validateSlug } from '@/utils/validation';
+import ProblemSearch, { type SearchableProblem } from '@/components/ProblemSearch';
 
 const MarkdownEditor = dynamic(() => import('@/components/MarkdownEditor').then(m => m.MarkdownEditor), { ssr: false });
 
@@ -25,6 +26,7 @@ export default function ManagerCreateContestClient() {
     id: '', name: '', description: '', length: 60,
     starts_at: '', ends_at: '', is_rated: false
   });
+  const [selectedProblems, setSelectedProblems] = useState<SearchableProblem[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -59,12 +61,14 @@ export default function ManagerCreateContestClient() {
           starts_at: formData.starts_at ? new Date(formData.starts_at).toISOString() : null,
           ends_at: formData.ends_at ? new Date(formData.ends_at).toISOString() : null,
           is_rated: formData.is_rated,
+          problem_ids: selectedProblems.map(p => p.id),
         })
       });
       const json = await res.json();
       if (res.ok) {
         setSuccess('Contest created successfully!');
         setFormData({ id: '', name: '', description: '', length: 60, starts_at: '', ends_at: '', is_rated: false });
+        setSelectedProblems([]);
         setTimeout(() => router.push('/manager/dashboard'), 2000);
       } else { setError(json.error || 'Failed to create contest'); }
     } catch { setError('An unexpected error occurred'); }
@@ -144,6 +148,17 @@ export default function ManagerCreateContestClient() {
                 Rated Contest
               </label>
               <p className="text-xs text-text-muted">Rated contests will affect player rankings (not yet implemented).</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">Contest Problems</label>
+              <p className="text-xs text-text-muted">Search and select problems to include in this contest</p>
+              <ProblemSearch
+                searchEndpoint="/api/manager/problems/search"
+                accessToken={session?.access_token}
+                selectedProblems={selectedProblems}
+                onSelectedChange={setSelectedProblems}
+              />
             </div>
 
             <div>
