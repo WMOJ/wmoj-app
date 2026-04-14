@@ -76,7 +76,7 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
       : Promise.resolve({ data: null }),
     supabase
       .from('comments')
-      .select('id, problem_id, user_id, body, score, created_at, updated_at, users(username)')
+      .select('id, problem_id, user_id, parent_id, body, score, created_at, updated_at, users(username)')
       .eq('problem_id', id)
       .order('created_at', { ascending: true }),
   ]);
@@ -102,6 +102,7 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
       id: c.id as string,
       problem_id: c.problem_id as string,
       user_id: c.user_id as string,
+      parent_id: (c.parent_id as string) || null,
       body: c.body as string,
       score: c.score as number,
       created_at: c.created_at as string,
