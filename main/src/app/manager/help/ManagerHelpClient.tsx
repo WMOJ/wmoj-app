@@ -22,6 +22,7 @@ export default function ManagerHelpClient() {
                   { href: '#problems', label: 'Creating Problems' },
                   { href: '#generators', label: 'Test Case Generators (C++)' },
                   { href: '#generator-guide', label: 'Detailed Generator Guide' },
+                  { href: '#subtasks', label: 'Sub-tasks & Constraint Groups' },
                   { href: '#manage-problems', label: 'Managing Problems' },
                   { href: '#contests', label: 'Contests (Create & Manage)' },
                   { href: '#judge', label: 'Judge Service' },
@@ -135,6 +136,14 @@ int main() {
 
     return 0;
 }`}</code></pre>
+            </section>
+
+            <section id="subtasks" className="space-y-2">
+              <h2 className="text-base font-semibold text-foreground">Sub-tasks & Constraint Groups</h2>
+              <p className="text-text-muted">Some problems award partial credit through <strong className="text-foreground">sub-tasks</strong> — groups of test cases that each operate under a specific set of constraints. This is common in competitions like the CCC, where different sets of test cases correspond to different difficulty tiers and point values.</p>
+              <p className="text-text-muted">For example, an easy sub-task might restrict the input size to 0 ≤ N ≤ 100, while a harder sub-task allows 0 ≤ N ≤ 10<sup>9</sup>. Each sub-task is a family of test cases that all conform to the same constraint range.</p>
+              <p className="text-text-muted"><strong className="text-foreground">This is entirely controlled by your generator.</strong> The platform does not have a separate sub-task configuration — it is up to you, the problem author, to write your <code className="px-1.5 py-0.5 bg-surface-2 rounded text-xs font-mono">generator.cpp</code> so that it produces the correct number of test cases for each sub-task, with inputs that respect the corresponding constraints.</p>
+              <p className="text-text-muted">In practice, this means structuring your generator to produce test cases in batches: for instance, the first 10 cases with small N for Sub-task 1, the next 10 with medium N for Sub-task 2, and so on. Make sure the problem description clearly states which test cases belong to which sub-task and what constraints apply.</p>
             </section>
 
             <section id="manage-problems" className="space-y-2">
