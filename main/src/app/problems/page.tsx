@@ -9,10 +9,11 @@ const PAGE_SIZE = 20;
 export default async function ProblemsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; search?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = Math.max(1, Number(params?.page) || 1);
+  const search = params?.search?.trim() || '';
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
@@ -40,13 +41,18 @@ export default async function ProblemsPage({
     ? `contest.is.null,contest.in.(${virtualIds.join(',')})`
     : 'contest.is.null';
 
-  const { data: problems, count, error } = await supabase
+  let query = supabase
     .from('problems')
     .select('*', { count: 'exact' })
     .or(orFilter)
     .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .range(from, to);
+    .order('created_at', { ascending: false });
+
+  if (search) {
+    query = query.ilike('name', `%${search}%`);
+  }
+
+  const { data: problems, count, error } = await query.range(from, to);
 
   if (error) {
     return (
@@ -95,6 +101,7 @@ export default async function ProblemsPage({
       hotProblems={hotProblems}
       totalPages={totalPages}
       currentPage={currentPage}
+      currentSearch={search}
     />
   );
 }

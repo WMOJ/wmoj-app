@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,14 +17,36 @@ export default function ProblemsClient({
   hotProblems,
   totalPages,
   currentPage,
+  currentSearch,
 }: {
   initialProblems: Problem[],
   hotProblems: HotProblem[],
   totalPages: number,
   currentPage: number,
+  currentSearch: string,
 }) {
   const { user } = useAuth();
-  const [search, setSearch] = useState('');
+  const router = useRouter();
+  const [searchInput, setSearchInput] = useState(currentSearch);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (value.trim()) params.set('search', value.trim());
+      params.set('page', '1');
+      router.replace(`?${params.toString()}`);
+    }, 300);
+  };
+
+  const buildHref = (page: number) => {
+    const params = new URLSearchParams();
+    if (currentSearch) params.set('search', currentSearch);
+    params.set('page', String(page));
+    return `?${params.toString()}`;
+  };
 
   const fetcher = async () => {
     if (!user?.id || initialProblems.length === 0) return {};
@@ -53,12 +76,6 @@ export default function ProblemsClient({
   );
 
   const statusByProblem = statusMap || {};
-
-  const filteredProblems = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return initialProblems;
-    return initialProblems.filter(p => p.name.toLowerCase().includes(q) || (p.content || '').toLowerCase().includes(q));
-  }, [initialProblems, search]);
 
   const columns: Array<DataTableColumn<Problem>> = [
     { key: 'name', header: 'Problem', className: 'w-[50%]', sortable: true, sortAccessor: (r) => r.name.toLowerCase(), render: (r) => <span className="text-foreground font-medium text-sm">{r.name}</span> },
@@ -99,8 +116,10 @@ export default function ProblemsClient({
             </div>
             {initialProblems.length === 0 ? (
               <div className="text-center py-12">
-                <h3 className="text-base font-medium text-foreground mb-1">No Problems Available</h3>
-                <p className="text-sm text-text-muted">Check back later for new problems.</p>
+                <h3 className="text-base font-medium text-foreground mb-1">
+                  {currentSearch ? 'No problems match your search.' : 'No Problems Available'}
+                </h3>
+                {!currentSearch && <p className="text-sm text-text-muted">Check back later for new problems.</p>}
               </div>
             ) : (
               <>
@@ -108,16 +127,10 @@ export default function ProblemsClient({
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
-                    buildHref={(p) => `?page=${p}`}
+                    buildHref={buildHref}
                   />
                 </div>
-                {filteredProblems.length === 0 ? (
-                  <div className="text-center py-12 text-sm text-text-muted">
-                    No problems match your search.
-                  </div>
-                ) : (
-                  <DataTable<Problem> columns={columns} rows={filteredProblems} rowKey={(r) => r.id} headerVariant="gray" />
-                )}
+                <DataTable<Problem> columns={columns} rows={initialProblems} rowKey={(r) => r.id} headerVariant="gray" />
               </>
             )}
           </div>
@@ -133,8 +146,8 @@ export default function ProblemsClient({
             </div>
             <div className="p-4 bg-surface-1">
               <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={e => handleSearchChange(e.target.value)}
                 placeholder="Search problems..."
                 className="w-full h-9 px-3 rounded-md bg-surface-2 border border-border text-sm text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
               />
