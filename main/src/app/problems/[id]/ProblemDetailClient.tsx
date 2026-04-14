@@ -7,16 +7,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { Problem } from '@/types/problem';
+import { Comment } from '@/types/comment';
 import { useCountdown } from '@/contexts/CountdownContext';
 import { Badge } from '@/components/ui/Badge';
+import CommentsSection from '@/components/CommentsSection';
 
 interface ProblemDetailClientProps {
   problem: Problem;
   initialBestSummary: { total: number; passed: number; failed: number } | null;
   isVirtualContest?: boolean;
+  initialComments: Comment[];
 }
 
-export default function ProblemDetailClient({ problem, initialBestSummary, isVirtualContest }: ProblemDetailClientProps) {
+export default function ProblemDetailClient({ problem, initialBestSummary, isVirtualContest, initialComments }: ProblemDetailClientProps) {
   const router = useRouter();
   const { user, profile } = useAuth();
   const { isActive, contestId } = useCountdown();
@@ -51,7 +54,7 @@ export default function ProblemDetailClient({ problem, initialBestSummary, isVir
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main content */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <div className="glass-panel p-6">
               {/* Header */}
               <div className="flex flex-wrap items-center gap-3 mb-5">
@@ -66,6 +69,7 @@ export default function ProblemDetailClient({ problem, initialBestSummary, isVir
                 <MarkdownRenderer content={problem.content} />
               </div>
             </div>
+            <CommentsSection problemId={problem.id} initialComments={initialComments} />
           </div>
 
           {/* Sidebar */}

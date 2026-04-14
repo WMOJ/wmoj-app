@@ -65,26 +65,51 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  // Fetch best submission
+  // Fetch best submission and comments in parallel
+  const [subsResult, commentsResult] = await Promise.all([
+    user
+      ? supabase
+          .from('submissions')
+          .select('summary')
+          .eq('user_id', user.id)
+          .eq('problem_id', problem.id)
+      : Promise.resolve({ data: null }),
+    supabase
+      .from('comments')
+      .select('id, problem_id, user_id, body, score, created_at, updated_at, users(username)')
+      .eq('problem_id', id)
+      .order('created_at', { ascending: true }),
+  ]);
+
   let bestSummary = null;
-  if (user) {
-    const { data: subs } = await supabase
-      .from('submissions')
-      .select('summary')
-      .eq('user_id', user.id)
-      .eq('problem_id', problem.id);
-      
-    if (subs && subs.length > 0) {
-      for (const row of subs) {
-        const s = row.summary as { total?: number; passed?: number; failed?: number } | null;
-        if (!s) continue;
-        const current = { total: Number(s.total ?? 0), passed: Number(s.passed ?? 0), failed: Number(s.failed ?? 0) };
-        if (!bestSummary || current.passed > bestSummary.passed || (current.passed === bestSummary.passed && current.total > bestSummary.total)) {
-          bestSummary = current;
-        }
+  const { data: subs } = subsResult;
+  if (subs && subs.length > 0) {
+    for (const row of subs) {
+      const s = row.summary as { total?: number; passed?: number; failed?: number } | null;
+      if (!s) continue;
+      const current = { total: Number(s.total ?? 0), passed: Number(s.passed ?? 0), failed: Number(s.failed ?? 0) };
+      if (!bestSummary || current.passed > bestSummary.passed || (current.passed === bestSummary.passed && current.total > bestSummary.total)) {
+        bestSummary = current;
       }
     }
   }
 
-  return <ProblemDetailClient problem={problem} initialBestSummary={bestSummary} isVirtualContest={virtualContest} />;
+  const { data: rawComments } = commentsResult;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const initialComments = (rawComments || []).map((c: Record<string, unknown>) => {
+    const users = c.users as { username: string } | null;
+    return {
+      id: c.id as string,
+      problem_id: c.problem_id as string,
+      user_id: c.user_id as string,
+      body: c.body as string,
+      score: c.score as number,
+      created_at: c.created_at as string,
+      updated_at: c.updated_at as string,
+      username: users?.username || 'Unknown',
+      avatar_url: `${supabaseUrl}/storage/v1/object/public/avatars/${c.user_id}/avatar`,
+    };
+  });
+
+  return <ProblemDetailClient problem={problem} initialBestSummary={bestSummary} isVirtualContest={virtualContest} initialComments={initialComments} />;
 }
