@@ -7,7 +7,7 @@
 /* --- Color Tokens (Light Mode Only) --- */
 :root {
   --background: #fafafa;
-  --foreground: #18181b;
+  --foreground: #09090b;
   --surface-1: #ffffff;
   --surface-2: #f4f4f5;
   --surface-3: #e4e4e7;
@@ -20,7 +20,7 @@
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --border: #e4e4e7;
   --sidebar-border: #e4e4e7;
-  --text-muted: #71717a;
+  --text-muted: #52525b;
   --radius: 8px;
 }
 
@@ -41,13 +41,13 @@
 /* --- Dropdown inside dark navbar — reset to light-mode tokens --- */
 [data-navbar] [data-surface="light"] {
   --background: #fafafa;
-  --foreground: #18181b;
+  --foreground: #09090b;
   --surface-1: #ffffff;
   --surface-2: #f4f4f5;
   --surface-3: #e4e4e7;
   --border: #e4e4e7;
-  --text-muted: #71717a;
-  color: #18181b;
+  --text-muted: #52525b;
+  color: #09090b;
 }
 
 /* --- Tailwind CSS v4 Theme Mapping --- */
