@@ -26,7 +26,7 @@ function formatCommentDate(isoString: string): string {
 }
 
 export default function CommentsSection({ problemId, initialComments }: CommentsSectionProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, userRole } = useAuth();
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [userVotes, setUserVotes] = useState<Map<string, number>>(new Map());
   const [newCommentBody, setNewCommentBody] = useState('');
@@ -149,6 +149,13 @@ export default function CommentsSection({ problemId, initialComments }: Comments
     setIsSubmitting(false);
   }
 
+  async function handleDeleteComment(commentId: string) {
+    const { error } = await supabase.from('comments').delete().eq('id', commentId);
+    if (!error) {
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    }
+  }
+
   return (
     <>
       <div className="glass-panel overflow-hidden mt-6">
@@ -242,6 +249,23 @@ export default function CommentsSection({ problemId, initialComments }: Comments
                       </div>
                       <p className="text-sm text-foreground mt-1.5 whitespace-pre-wrap">{comment.body}</p>
                     </div>
+
+                    {/* Manager-only delete button */}
+                    {userRole === 'manager' && (
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="flex-shrink-0 text-text-muted hover:text-error transition-colors p-1 self-start"
+                        aria-label="Delete comment"
+                        title="Delete comment"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          <line x1="10" y1="11" x2="10" y2="17" />
+                          <line x1="14" y1="11" x2="14" y2="17" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 );
               })}
