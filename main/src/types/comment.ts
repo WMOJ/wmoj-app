@@ -2,6 +2,7 @@ export interface Comment {
   id: string;
   problem_id: string;
   user_id: string;
+  parent_id: string | null;
   body: string;
   score: number;
   created_at: string;

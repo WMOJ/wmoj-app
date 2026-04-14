@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,10 @@ import { Comment } from '@/types/comment';
 interface CommentsSectionProps {
   problemId: string;
   initialComments: Comment[];
+}
+
+interface CommentNode extends Comment {
+  children: CommentNode[];
 }
 
 function formatCommentDate(isoString: string): string {
@@ -25,6 +29,26 @@ function formatCommentDate(isoString: string): string {
   return `${month} ${day}, ${year}, ${hours}:${minutes} ${ampm}`;
 }
 
+function buildCommentTree(comments: Comment[]): CommentNode[] {
+  const map = new Map<string, CommentNode>();
+  const roots: CommentNode[] = [];
+
+  for (const c of comments) {
+    map.set(c.id, { ...c, children: [] });
+  }
+
+  for (const c of comments) {
+    const node = map.get(c.id)!;
+    if (c.parent_id && map.has(c.parent_id)) {
+      map.get(c.parent_id)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  return roots;
+}
+
 export default function CommentsSection({ problemId, initialComments }: CommentsSectionProps) {
   const { user, profile, userRole } = useAuth();
   const [comments, setComments] = useState<Comment[]>(initialComments);
@@ -34,6 +58,10 @@ export default function CommentsSection({ problemId, initialComments }: Comments
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
   const [pendingVotes, setPendingVotes] = useState<Set<string>>(new Set());
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState('');
+
+  const commentTree = useMemo(() => buildCommentTree(comments), [comments]);
 
   useEffect(() => {
     if (!user || comments.length === 0) return;
@@ -96,7 +124,6 @@ export default function CommentsSection({ problemId, initialComments }: Comments
       }
 
       if (dbError) {
-        // Revert score
         setComments(prev => prev.map(c => {
           if (c.id !== commentId) return c;
           let scoreDelta = 0;
@@ -109,7 +136,6 @@ export default function CommentsSection({ problemId, initialComments }: Comments
           }
           return { ...c, score: c.score + scoreDelta };
         }));
-        // Revert vote state
         setUserVotes(prev => {
           const next = new Map(prev);
           if (currentVote) {
@@ -134,12 +160,13 @@ export default function CommentsSection({ problemId, initialComments }: Comments
     const { data, error } = await supabase
       .from('comments')
       .insert({ problem_id: problemId, user_id: user.id, body: newCommentBody.trim() })
-      .select('id, problem_id, user_id, body, score, created_at, updated_at')
+      .select('id, problem_id, user_id, parent_id, body, score, created_at, updated_at')
       .single();
 
     if (data && !error) {
       const newComment: Comment = {
         ...data,
+        parent_id: null,
         username: profile?.username || 'Unknown',
         avatar_url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}/avatar`,
       };
@@ -149,11 +176,175 @@ export default function CommentsSection({ problemId, initialComments }: Comments
     setIsSubmitting(false);
   }
 
+  async function handleSubmitReply(parentId: string) {
+    if (!user) { setShowAuthPrompt(true); return; }
+    if (!replyBody.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    const { data, error } = await supabase
+      .from('comments')
+      .insert({ problem_id: problemId, user_id: user.id, body: replyBody.trim(), parent_id: parentId })
+      .select('id, problem_id, user_id, parent_id, body, score, created_at, updated_at')
+      .single();
+
+    if (data && !error) {
+      const newComment: Comment = {
+        ...data,
+        parent_id: parentId,
+        username: profile?.username || 'Unknown',
+        avatar_url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}/avatar`,
+      };
+      setComments(prev => [...prev, newComment]);
+      setReplyBody('');
+      setReplyingTo(null);
+    }
+    setIsSubmitting(false);
+  }
+
   async function handleDeleteComment(commentId: string) {
     const { error } = await supabase.from('comments').delete().eq('id', commentId);
     if (!error) {
-      setComments(prev => prev.filter(c => c.id !== commentId));
+      // Collect this comment and all descendants (DB cascades, client must match)
+      const toRemove = new Set<string>([commentId]);
+      let added = true;
+      while (added) {
+        added = false;
+        for (const c of comments) {
+          if (c.parent_id && toRemove.has(c.parent_id) && !toRemove.has(c.id)) {
+            toRemove.add(c.id);
+            added = true;
+          }
+        }
+      }
+      setComments(prev => prev.filter(c => !toRemove.has(c.id)));
+      if (replyingTo && toRemove.has(replyingTo)) {
+        setReplyingTo(null);
+        setReplyBody('');
+      }
     }
+  }
+
+  function renderComment(node: CommentNode) {
+    const voteValue = userVotes.get(node.id);
+    return (
+      <div key={node.id}>
+        <div className="flex gap-3 py-4 border-b border-border">
+          {/* Vote buttons */}
+          <div className="flex flex-col items-center gap-0.5 pt-0.5">
+            <button
+              onClick={() => handleVote(node.id, 1)}
+              className={`transition-colors ${voteValue === 1 ? 'text-brand-primary' : 'text-text-muted hover:text-brand-primary'}`}
+              aria-label="Upvote"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4l-8 8h16z" />
+              </svg>
+            </button>
+            <span className="text-xs font-mono font-medium text-foreground">{node.score}</span>
+            <button
+              onClick={() => handleVote(node.id, -1)}
+              className={`transition-colors ${voteValue === -1 ? 'text-error' : 'text-text-muted hover:text-error'}`}
+              aria-label="Downvote"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 20l-8-8h16z" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Avatar */}
+          <Link href={`/users/${node.username}`} className="flex-shrink-0">
+            {avatarErrors.has(node.id) ? (
+              <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                {node.username.charAt(0).toUpperCase()}
+              </div>
+            ) : (
+              <img
+                src={node.avatar_url}
+                alt={node.username}
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                onError={() => setAvatarErrors(prev => new Set(prev).add(node.id))}
+              />
+            )}
+          </Link>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 text-xs">
+              <Link href={`/users/${node.username}`} className="font-semibold text-brand-primary hover:underline">
+                {node.username}
+              </Link>
+              <span className="text-text-muted">commented on {formatCommentDate(node.created_at)}</span>
+            </div>
+            <p className="text-sm text-foreground mt-1.5 whitespace-pre-wrap">{node.body}</p>
+            <button
+              onClick={() => {
+                if (!user) { setShowAuthPrompt(true); return; }
+                setReplyingTo(replyingTo === node.id ? null : node.id);
+                setReplyBody('');
+              }}
+              className="text-xs text-text-muted hover:text-brand-primary mt-1.5 transition-colors"
+            >
+              Reply
+            </button>
+          </div>
+
+          {/* Manager-only delete button */}
+          {userRole === 'manager' && (
+            <button
+              onClick={() => handleDeleteComment(node.id)}
+              className="flex-shrink-0 text-text-muted hover:text-error transition-colors p-1 self-start"
+              aria-label="Delete comment"
+              title="Delete comment"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Inline reply form */}
+        {replyingTo === node.id && (
+          <div className="pl-10 py-3 border-b border-border">
+            <textarea
+              value={replyBody}
+              onChange={e => setReplyBody(e.target.value)}
+              placeholder={`Reply to ${node.username}...`}
+              className="w-full bg-surface-2 border border-border rounded-lg p-3 text-sm text-foreground placeholder:text-text-muted resize-y min-h-[60px]"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => { setReplyingTo(null); setReplyBody(''); }}
+                className="text-sm text-text-muted hover:text-foreground transition-colors px-3 py-1.5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSubmitReply(node.id)}
+                disabled={isSubmitting}
+                className="bg-brand-primary text-white text-sm font-medium rounded-lg px-4 py-1.5 hover:bg-brand-secondary transition-colors disabled:opacity-60"
+              >
+                {isSubmitting ? 'Submitting...' : 'Reply'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Nested replies */}
+        {node.children.length > 0 && (
+          <div className="pl-10 border-l border-border ml-4">
+            {node.children.map(child => renderComment(child))}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -168,7 +359,7 @@ export default function CommentsSection({ problemId, initialComments }: Comments
         </div>
 
         <div className="p-4">
-          {/* Comment form */}
+          {/* Top-level comment form */}
           <form onSubmit={handleSubmitComment} className="mb-4">
             <textarea
               value={newCommentBody}
@@ -189,86 +380,14 @@ export default function CommentsSection({ problemId, initialComments }: Comments
             </div>
           </form>
 
-          {/* Comment list */}
+          {/* Comment tree */}
           {comments.length === 0 ? (
             <p className="text-sm text-text-muted text-center py-6">
               No comments yet. Be the first to comment!
             </p>
           ) : (
             <div>
-              {comments.map(comment => {
-                const voteValue = userVotes.get(comment.id);
-                return (
-                  <div key={comment.id} className="flex gap-3 py-4 border-b border-border last:border-b-0">
-                    {/* Vote buttons */}
-                    <div className="flex flex-col items-center gap-0.5 pt-0.5">
-                      <button
-                        onClick={() => handleVote(comment.id, 1)}
-                        className={`transition-colors ${voteValue === 1 ? 'text-brand-primary' : 'text-text-muted hover:text-brand-primary'}`}
-                        aria-label="Upvote"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 4l-8 8h16z" />
-                        </svg>
-                      </button>
-                      <span className="text-xs font-mono font-medium text-foreground">{comment.score}</span>
-                      <button
-                        onClick={() => handleVote(comment.id, -1)}
-                        className={`transition-colors ${voteValue === -1 ? 'text-error' : 'text-text-muted hover:text-error'}`}
-                        aria-label="Downvote"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 20l-8-8h16z" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Avatar */}
-                    <Link href={`/users/${comment.username}`} className="flex-shrink-0">
-                      {avatarErrors.has(comment.id) ? (
-                        <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {comment.username.charAt(0).toUpperCase()}
-                        </div>
-                      ) : (
-                        <img
-                          src={comment.avatar_url}
-                          alt={comment.username}
-                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                          onError={() => setAvatarErrors(prev => new Set(prev).add(comment.id))}
-                        />
-                      )}
-                    </Link>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <Link href={`/users/${comment.username}`} className="font-semibold text-brand-primary hover:underline">
-                          {comment.username}
-                        </Link>
-                        <span className="text-text-muted">commented on {formatCommentDate(comment.created_at)}</span>
-                      </div>
-                      <p className="text-sm text-foreground mt-1.5 whitespace-pre-wrap">{comment.body}</p>
-                    </div>
-
-                    {/* Manager-only delete button */}
-                    {userRole === 'manager' && (
-                      <button
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="flex-shrink-0 text-text-muted hover:text-error transition-colors p-1 self-start"
-                        aria-label="Delete comment"
-                        title="Delete comment"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          <line x1="10" y1="11" x2="10" y2="17" />
-                          <line x1="14" y1="11" x2="14" y2="17" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+              {commentTree.map(node => renderComment(node))}
             </div>
           )}
         </div>
