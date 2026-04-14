@@ -28,5 +28,10 @@ export default async function ManagerEditContestPage({ params }: { params: Promi
     redirect('/manager/contests/manage');
   }
 
-  return <ManagerEditContestClient contest={contestData} />;
+  const { data: contestProblems } = await supabase
+    .from('problems')
+    .select('id, name, points, difficulty')
+    .eq('contest', id);
+
+  return <ManagerEditContestClient contest={contestData} initialProblems={contestProblems ?? []} />;
 }

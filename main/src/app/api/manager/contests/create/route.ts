@@ -4,7 +4,7 @@ import { validateSlug } from '@/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, name, description, length, starts_at, ends_at, is_rated } = await request.json();
+    const { id, name, description, length, starts_at, ends_at, is_rated, problem_ids } = await request.json();
 
     const slugError = validateSlug(id, 'Contest');
     if (slugError) {
@@ -66,6 +66,19 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create contest' },
         { status: 500 }
       );
+    }
+
+    // Assign selected problems to this contest
+    if (Array.isArray(problem_ids) && problem_ids.length > 0) {
+      const { error: problemError } = await supabase
+        .from('problems')
+        .update({ contest: id })
+        .in('id', problem_ids)
+        .is('contest', null);
+
+      if (problemError) {
+        console.error('Problem assignment error:', problemError);
+      }
     }
 
     return NextResponse.json(
