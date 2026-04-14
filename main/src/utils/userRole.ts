@@ -57,13 +57,5 @@ export async function getUserRole(userId: string): Promise<UserRole> {
 export async function getUserDashboardPath(userId: string): Promise<string> {
   const role = await getUserRole(userId);
   
-  switch (role) {
-    case 'admin':
-      return '/admin/dashboard';
-    case 'manager':
-      return '/manager/dashboard';
-    case 'regular':
-    default:
-      return '/';
-  }
+  return '/';
 }
