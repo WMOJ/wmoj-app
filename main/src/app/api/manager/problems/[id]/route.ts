@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getManagerSupabase } from '@/lib/managerAuth';
+import { deleteProblemImages } from '@/utils/problemImages';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -89,6 +90,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const auth = await getManagerSupabase(request);
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const { supabase } = auth;
+
+  // Fetch content before deletion so we can clean up associated images
+  const { data: problem } = await supabase
+    .from('problems')
+    .select('content')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from('problems')
     .delete()
@@ -97,5 +106,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     console.error('Delete problem error:', error);
     return NextResponse.json({ error: 'Failed to delete problem' }, { status: 500 });
   }
+
+  // Best-effort image cleanup after successful deletion
+  if (problem?.content) {
+    await deleteProblemImages(supabase, problem.content);
+  }
+
   return NextResponse.json({ success: true });
 }
