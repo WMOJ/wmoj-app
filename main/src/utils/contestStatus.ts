@@ -60,7 +60,8 @@ export async function isContestVirtual(supabase: any, contestId: string): Promis
     .eq('id', contestId)
     .single();
   if (!data) return false;
-  return getContestStatus(data) === 'virtual';
+  const status = getContestStatus(data);
+  return status === 'virtual' || status === 'inactive';
 }
 
 export function getContestStatus(contest: ContestStatusInput): ContestStatus {

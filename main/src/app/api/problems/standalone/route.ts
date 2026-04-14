@@ -7,6 +7,7 @@ export async function GET() {
     const supabase = await getServerSupabase();
 
     // Include problems from virtual contests (ended + active, or no time window)
+    // and from inactive contests (problems assigned to a contest that hasn't been activated yet)
     const isoNow = new Date().toISOString();
     const { data: virtualContestsWithEnd } = await supabase
       .from('contests')
@@ -19,9 +20,14 @@ export async function GET() {
       .eq('is_active', true)
       .is('starts_at', null)
       .is('ends_at', null);
+    const { data: inactiveContests } = await supabase
+      .from('contests')
+      .select('id')
+      .eq('is_active', false);
     const virtualIds = [
       ...(virtualContestsWithEnd || []).map((c: { id: string }) => c.id),
       ...(virtualContestsNoWindow || []).map((c: { id: string }) => c.id),
+      ...(inactiveContests || []).map((c: { id: string }) => c.id),
     ];
 
     const orFilter = virtualIds.length > 0
