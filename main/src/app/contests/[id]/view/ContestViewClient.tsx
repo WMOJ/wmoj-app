@@ -26,9 +26,16 @@ interface ContestDetail {
   is_rated: boolean;
 }
 
+interface ContestProblem {
+  id: string;
+  name: string;
+  points: number;
+}
+
 interface ContestViewClientProps {
   error?: string;
   initialContest?: ContestDetail;
+  problems?: ContestProblem[];
 }
 
 
@@ -46,7 +53,7 @@ const STATUS_LABEL: Record<ContestStatus, string> = {
   inactive: 'Inactive',
 };
 
-export default function ContestViewClient({ error, initialContest }: ContestViewClientProps) {
+export default function ContestViewClient({ error, initialContest, problems = [] }: ContestViewClientProps) {
   const router = useRouter();
   const { user, session, userRole } = useAuth();
   const { startCountdown } = useCountdown();
@@ -189,6 +196,35 @@ export default function ContestViewClient({ error, initialContest }: ContestView
                 </div>
               </div>
             </div>
+            {status === 'virtual' && problems.length > 0 && (
+              <div className="glass-panel overflow-hidden">
+                <div className="bg-surface-2 px-4 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">Problems</h2>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    This contest has ended. Problems can be solved individually as practice.
+                  </p>
+                </div>
+                <div className="divide-y divide-border">
+                  {problems.map((problem, i) => (
+                    <Link
+                      key={problem.id}
+                      href={`/problems/${problem.id}`}
+                      className="flex items-center justify-between px-4 py-3 bg-surface-1 hover:bg-surface-2 transition-colors group"
+                    >
+                      <span className="text-sm font-medium text-foreground group-hover:text-brand-primary transition-colors">
+                        {String.fromCharCode(65 + i)}. {problem.name}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-mono text-text-muted">{problem.points} pts</span>
+                        <span className="text-xs text-brand-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                          Solve →
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         ) : null}
       </div>
