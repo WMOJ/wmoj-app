@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase, getServerSupabaseFromToken } from '@/lib/supabaseServer';
+import { getContestStatus } from '@/utils/contestStatus';
 
 async function getAdminSupabase(request: NextRequest) {
   const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
@@ -43,7 +44,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const { supabase } = auth;
 
-  const { data: existing } = await supabase.from('contests').select('is_active').eq('id', id).maybeSingle();
+  const { data: existing } = await supabase.from('contests').select('is_active, is_rated').eq('id', id).maybeSingle();
   if (existing?.is_active) return NextResponse.json({ error: 'Cannot edit an activated contest' }, { status: 403 });
 
   const body = await request.json();
@@ -98,6 +99,40 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const currentSet = new Set(currentIds);
     const toAdd = problemIds.filter(pid => !currentSet.has(pid));
     if (toAdd.length > 0) {
+      // Validate eligibility of newly added problems
+      const { data: cpRows } = await supabase
+        .from('contest_problems')
+        .select('problem_id, contest_id')
+        .in('problem_id', toAdd);
+
+      if (cpRows && cpRows.length > 0) {
+        const contestIdsInUse = [...new Set(cpRows.map(r => r.contest_id))];
+        const { data: contestsInUse } = await supabase
+          .from('contests')
+          .select('id, is_active, is_rated, starts_at, ends_at')
+          .in('id', contestIdsInUse);
+
+        const ratedNonVirtualIds = new Set(
+          (contestsInUse || [])
+            .filter(c => {
+              if (!c.is_rated) return false;
+              const status = getContestStatus(c as { is_active: boolean; starts_at: string | null; ends_at: string | null });
+              return status === 'ongoing' || status === 'upcoming';
+            })
+            .map(c => c.id)
+        );
+        const blockedByRule1 = cpRows.filter(r => ratedNonVirtualIds.has(r.contest_id));
+        if (blockedByRule1.length > 0) {
+          return NextResponse.json({ error: 'Some problems are in a rated ongoing/upcoming contest and cannot be added' }, { status: 400 });
+        }
+
+        // Rule 2: If this contest is rated, block problems already in any other contest
+        const contestIsRated = body.is_rated !== undefined ? !!body.is_rated : !!existing?.is_rated;
+        if (contestIsRated) {
+          return NextResponse.json({ error: 'Rated contests can only include standalone problems not already in another contest' }, { status: 400 });
+        }
+      }
+
       const rows = toAdd.map(pid => ({ contest_id: id, problem_id: pid }));
       await supabase.from('contest_problems').insert(rows);
     }

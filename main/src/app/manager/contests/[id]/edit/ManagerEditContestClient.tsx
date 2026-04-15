@@ -161,13 +161,18 @@ export default function ManagerEditContestClient({ contest, initialProblems = []
 
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-foreground">Contest Problems</label>
-              <p className="text-xs text-text-muted">Search and select problems to include in this contest</p>
+              <p className="text-xs text-text-muted">
+                {formData.is_rated
+                  ? 'Rated contests can only include standalone problems not already in another contest.'
+                  : 'Search and select problems. Problems in rated ongoing/upcoming contests are excluded.'}
+              </p>
               <ProblemSearch
                 searchEndpoint="/api/manager/problems/search"
                 accessToken={session?.access_token}
                 selectedProblems={selectedProblems}
                 onSelectedChange={setSelectedProblems}
                 excludeContest={contest.id}
+                targetRated={formData.is_rated}
               />
             </div>
 

@@ -15,6 +15,7 @@ interface ProblemSearchProps {
   selectedProblems: SearchableProblem[];
   onSelectedChange: (problems: SearchableProblem[]) => void;
   excludeContest?: string;
+  targetRated?: boolean;
 }
 
 const inputClass = "w-full h-10 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20";
@@ -25,6 +26,7 @@ export default function ProblemSearch({
   selectedProblems,
   onSelectedChange,
   excludeContest,
+  targetRated,
 }: ProblemSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchableProblem[]>([]);
@@ -46,6 +48,7 @@ export default function ProblemSearch({
     try {
       const params = new URLSearchParams({ q: term });
       if (excludeContest) params.set('exclude_contest', excludeContest);
+      if (targetRated) params.set('target_rated', 'true');
 
       const res = await fetch(`${searchEndpoint}?${params}`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
@@ -61,7 +64,7 @@ export default function ProblemSearch({
     } finally {
       setLoading(false);
     }
-  }, [searchEndpoint, accessToken, excludeContest]);
+  }, [searchEndpoint, accessToken, excludeContest, targetRated]);
 
   useEffect(() => {
     if (debounceRef.current !== null) clearTimeout(debounceRef.current);

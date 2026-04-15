@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getManagerSupabase } from '@/lib/managerAuth';
 import { validateSlug } from '@/utils/validation';
+import { getContestStatus } from '@/utils/contestStatus';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +71,43 @@ export async function POST(request: NextRequest) {
 
     // Assign selected problems to this contest via junction table
     if (Array.isArray(problem_ids) && problem_ids.length > 0) {
+      // Validate problem eligibility
+      const { data: cpRows } = await supabase
+        .from('contest_problems')
+        .select('problem_id, contest_id')
+        .in('problem_id', problem_ids);
+
+      if (cpRows && cpRows.length > 0) {
+        const contestIdsInUse = [...new Set(cpRows.map(r => r.contest_id))];
+        const { data: contestsInUse } = await supabase
+          .from('contests')
+          .select('id, is_active, is_rated, starts_at, ends_at')
+          .in('id', contestIdsInUse);
+
+        // Rule 1: Block problems in rated non-virtual contests
+        const ratedNonVirtualIds = new Set(
+          (contestsInUse || [])
+            .filter(c => {
+              if (!c.is_rated) return false;
+              const status = getContestStatus(c as { is_active: boolean; starts_at: string | null; ends_at: string | null });
+              return status === 'ongoing' || status === 'upcoming';
+            })
+            .map(c => c.id)
+        );
+        const blockedByRule1 = cpRows.filter(r => ratedNonVirtualIds.has(r.contest_id)).map(r => r.problem_id);
+        if (blockedByRule1.length > 0) {
+          return NextResponse.json({ error: 'Some problems are in a rated ongoing/upcoming contest and cannot be added' }, { status: 400 });
+        }
+
+        // Rule 2: If this contest is rated, block problems in ANY other contest
+        if (is_rated) {
+          const inOtherContest = cpRows.map(r => r.problem_id);
+          if (inOtherContest.length > 0) {
+            return NextResponse.json({ error: 'Rated contests can only include standalone problems not already in another contest' }, { status: 400 });
+          }
+        }
+      }
+
       const rows = problem_ids.map((pid: string) => ({ contest_id: id, problem_id: pid }));
       const { error: cpError } = await supabase
         .from('contest_problems')
