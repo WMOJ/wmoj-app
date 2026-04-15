@@ -155,6 +155,12 @@ int main() {
               <h2 className="text-base font-semibold text-foreground">Contests</h2>
               <p className="text-text-muted">Create contests via <Link href="/manager/contests/create" className="text-brand-primary hover:underline">Create Contest</Link> and manage them in <Link href="/manager/contests/manage" className="text-brand-primary hover:underline">Manage Contests</Link>.</p>
               <p className="text-text-muted">When a problem is linked to a contest, submissions are allowed only for participants and within the timer window.</p>
+              <p className="text-text-muted">A problem can belong to multiple contests simultaneously, subject to the following rules:</p>
+              <ul className="list-disc list-inside ml-4 space-y-1 text-text-muted">
+                <li><strong className="text-foreground">Rated ongoing/upcoming contests lock their problems.</strong> If a problem is in a rated contest that is currently ongoing or upcoming, it cannot be added to any other contest.</li>
+                <li><strong className="text-foreground">Rated contests require standalone problems.</strong> When creating or editing a rated contest, you can only add problems that are not already in any other contest.</li>
+                <li><strong className="text-foreground">Unrated contests can share problems freely.</strong> Problems in virtual, inactive, or other unrated contests can be added to any unrated contest without restriction.</li>
+              </ul>
             </section>
 
             <section id="judge" className="space-y-2">
