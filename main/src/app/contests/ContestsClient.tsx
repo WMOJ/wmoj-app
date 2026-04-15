@@ -28,7 +28,6 @@ export default function ContestsClient({
   const { session } = useAuth();
   const [joinedContestId, setJoinedContestId] = useState<string | null>(null);
   const [joinedHistory, setJoinedHistory] = useState<Set<string>>(new Set());
-  const [virtualContestIds, setVirtualContestIds] = useState<Set<string>>(new Set());
 
   const fetcher = (url: string) => fetch(url, { headers: { 'Authorization': `Bearer ${session?.access_token}` } }).then(r => r.json());
 
@@ -42,9 +41,6 @@ export default function ContestsClient({
   useEffect(() => {
     if (joinHistory?.contest_ids && Array.isArray(joinHistory.contest_ids)) {
       setJoinedHistory(new Set(joinHistory.contest_ids));
-    }
-    if (joinHistory?.virtual_contest_ids && Array.isArray(joinHistory.virtual_contest_ids)) {
-      setVirtualContestIds(new Set(joinHistory.virtual_contest_ids));
     }
   }, [joinHistory]);
 
@@ -94,7 +90,7 @@ export default function ContestsClient({
         }
 
         if (joinedHistory.has(r.id)) {
-          if (status === 'virtual' && virtualContestIds.has(r.id)) {
+          if (status === 'virtual') {
             return <Link href={`/contests/${r.id}/view`} className="text-sm font-medium text-brand-primary hover:text-brand-secondary">Rejoin →</Link>;
           }
           return <Link href={`/contests/${r.id}/leaderboard`} className="text-sm font-medium text-text-muted hover:text-foreground">Spectate</Link>;

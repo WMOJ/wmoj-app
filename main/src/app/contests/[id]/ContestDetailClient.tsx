@@ -8,7 +8,6 @@ import { useCountdown } from '@/contexts/CountdownContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { RegularOnlyGuard } from '@/components/RegularOnlyGuard';
 import dynamic from 'next/dynamic';
-import { LoadingState, SkeletonText, LeaderboardLoading } from '@/components/LoadingStates';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 import type { Contest } from '@/types/contest';
 import { Badge } from '@/components/ui/Badge';
@@ -16,22 +15,11 @@ import { toast } from '@/components/ui/Toast';
 
 const MarkdownRenderer = dynamic(() => import('@/components/MarkdownRenderer').then(m => m.MarkdownRenderer), { ssr: false });
 
-type LeaderboardEntry = {
-  user_id: string;
-  username: string;
-  email: string;
-  total_score: number;
-  solved_problems: number;
-  total_problems: number;
-  rank: number;
-};
-
 interface ContestDetailClientProps {
   id: string;
   error?: string;
   initialContest?: Contest;
   initialProblems?: { id: string; name: string }[];
-  initialLeaderboard?: LeaderboardEntry[];
 }
 
 export default function ContestDetailClient({
@@ -39,16 +27,12 @@ export default function ContestDetailClient({
   error,
   initialContest,
   initialProblems = [],
-  initialLeaderboard = [],
 }: ContestDetailClientProps) {
   const { user, session } = useAuth();
   const { stopCountdown } = useCountdown();
   const router = useRouter();
-  
+
   const [leaving, setLeaving] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(initialLeaderboard);
-  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   const handleLeaveContest = async () => {
     if (!user || !id) return;
@@ -64,23 +48,6 @@ export default function ContestDetailClient({
       router.push('/contests');
     } catch (e) { toast.error('Error', e instanceof Error ? e.message : 'Failed to leave contest'); }
     finally { setLeaving(false); }
-  };
-
-  const handleLeaderboardToggle = async () => {
-    if (!showLeaderboard) {
-      setLeaderboardLoading(true);
-      try {
-        const res = await fetch(`/api/contests/${id}/leaderboard`, {
-          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
-        });
-        const json = await res.json();
-        if (res.ok) setLeaderboard(json.leaderboard || []);
-        else throw new Error(json?.error || 'Failed to fetch leaderboard');
-      } catch (e: unknown) { 
-        toast.error('Error', e instanceof Error ? e.message : 'Failed to fetch leaderboard'); 
-      } finally { setLeaderboardLoading(false); }
-    }
-    setShowLeaderboard(!showLeaderboard);
   };
 
   return (
@@ -123,53 +90,15 @@ export default function ContestDetailClient({
                 </div>
 
                 <div className="flex gap-2 shrink-0">
-                  <button onClick={handleLeaderboardToggle} className="px-4 py-2 text-sm border border-border rounded-lg text-text-muted hover:text-foreground hover:bg-surface-2">
-                    {showLeaderboard ? 'Hide' : 'Show'} Leaderboard
-                  </button>
+                  <Link href={`/contests/${id}/leaderboard`} className="px-4 py-2 text-sm border border-border rounded-lg text-text-muted hover:text-foreground hover:bg-surface-2">
+                    Leaderboard
+                  </Link>
                   <button onClick={handleLeaveContest} disabled={leaving} className="px-4 py-2 text-sm border border-error/20 rounded-lg text-error hover:bg-error/10 flex items-center gap-2">
                     {leaving ? <LoadingSpinner size="sm" /> : null}
                     Leave
                   </button>
                 </div>
               </div>
-
-              {/* Leaderboard */}
-              {showLeaderboard && (
-                <div className="glass-panel p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-semibold text-foreground">Leaderboard</h2>
-                    {leaderboardLoading && <LoadingSpinner size="sm" />}
-                  </div>
-
-                  {leaderboard.length === 0 ? (
-                    <p className="text-sm text-text-muted text-center py-6">No submissions yet. Be the first!</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {leaderboard.map((entry, index) => (
-                        <div key={entry.user_id} className="flex items-center justify-between p-3 rounded-lg bg-surface-2">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold ${index === 0 ? 'bg-amber-400 text-black' :
-                              index === 1 ? 'bg-slate-300 text-black' :
-                                index === 2 ? 'bg-amber-600 text-white' :
-                                  'bg-surface-1 text-text-muted'
-                              }`}>
-                              #{entry.rank}
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">{entry.username}</div>
-                              <div className="text-xs text-text-muted">{entry.email}</div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-semibold text-brand-primary font-mono">{entry.total_score} pts</div>
-                            <div className="text-xs text-text-muted font-mono">{entry.solved_problems}/{entry.total_problems}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Problems */}
               <div>
