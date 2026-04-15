@@ -60,9 +60,9 @@ export default function ProblemDetailClient({ problem, activeContestId, initialB
               {/* Header */}
               <div className="flex flex-wrap items-center gap-3 mb-5">
                 <h1 className="text-lg font-semibold text-foreground">{problem.name}</h1>
-                <Badge variant={activeContestId && !isVirtualContest ? 'info' : 'neutral'}>
-                  {activeContestId && !isVirtualContest ? 'Contest' : 'Standalone'}
-                </Badge>
+                {activeContestId && !isVirtualContest && (
+                  <Badge variant="info">Contest</Badge>
+                )}
               </div>
 
               {/* Description */}

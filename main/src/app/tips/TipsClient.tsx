@@ -30,7 +30,7 @@ export default function TipsClient() {
         <h2 className="text-base font-semibold text-foreground">How WMOJ Works</h2>
         <div className="text-sm text-text-muted leading-relaxed space-y-2">
           <p>
-            <span className="text-foreground font-medium">Problems:</span> Browse standalone practice
+            <span className="text-foreground font-medium">Problems:</span> Browse practice
             problems from the <span className="font-mono text-foreground">/problems</span> page. Each
             problem has a point value, a time limit, and a memory limit.
           </p>

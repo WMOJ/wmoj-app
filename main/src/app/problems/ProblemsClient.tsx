@@ -104,7 +104,7 @@ export default function ProblemsClient({
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-foreground mb-1">Practice Problems</h1>
-        <p className="text-sm text-text-muted">Solve standalone problems to sharpen your skills</p>
+        <p className="text-sm text-text-muted">Solve problems to sharpen your skills</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
