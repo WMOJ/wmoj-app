@@ -18,6 +18,7 @@ const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
 
 interface SubmitClientProps {
   problem: Problem;
+  activeContestId: string | null;
   isVirtualContest?: boolean;
 }
 
@@ -27,7 +28,7 @@ const languages = [
   { value: 'java', label: 'Java' },
 ];
 
-export default function SubmitClient({ problem, isVirtualContest }: SubmitClientProps) {
+export default function SubmitClient({ problem, activeContestId, isVirtualContest }: SubmitClientProps) {
   const router = useRouter();
   const { user, session } = useAuth();
   const { isActive, contestId } = useCountdown();
@@ -43,11 +44,11 @@ export default function SubmitClient({ problem, isVirtualContest }: SubmitClient
   const [summary, setSummary] = useState<{ total: number; passed: number; failed: number } | null>(null);
 
   useEffect(() => {
-    if (!problem?.contest || isVirtualContest) return;
+    if (!activeContestId || isVirtualContest) return;
     const countdownResolved = isActive !== undefined && (contestId !== null || !isActive);
     if (!countdownResolved) return;
-    if (!isActive || (contestId && contestId !== problem.contest)) router.replace('/contests');
-  }, [isActive, contestId, problem?.contest, router, isVirtualContest]);
+    if (!isActive || (contestId && contestId !== activeContestId)) router.replace('/contests');
+  }, [isActive, contestId, activeContestId, router, isVirtualContest]);
 
   const handleSubmit = async () => {
     if (!problem || !user || !codeText.trim()) return;

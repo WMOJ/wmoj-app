@@ -1,20 +1,24 @@
 import { getServerSupabase } from '@/lib/supabaseServer';
 import ProblemDetailClient from './ProblemDetailClient';
 import { checkTimerExpiry } from '@/utils/timerCheck';
-import { isContestVirtual } from '@/utils/contestStatus';
+import { getContestStatus } from '@/utils/contestStatus';
 import { redirect } from 'next/navigation';
 
 export default async function ProblemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await getServerSupabase();
-  
-  const [problemResult, authResult] = await Promise.all([
+
+  const [problemResult, authResult, cpResult] = await Promise.all([
     supabase
       .from('problems')
       .select('*')
       .eq('id', id)
       .single(),
-    supabase.auth.getUser()
+    supabase.auth.getUser(),
+    supabase
+      .from('contest_problems')
+      .select('contest_id')
+      .eq('problem_id', id),
   ]);
 
   const { data: problem, error } = problemResult;
@@ -31,36 +35,58 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
   const { data: authUser } = authResult;
   const user = authUser?.user;
 
-  let virtualContest = false;
-  if (problem.contest) {
-    virtualContest = await isContestVirtual(supabase, problem.contest);
+  // Determine if this problem is in any ongoing contest
+  const contestIds = (cpResult.data || []).map((r: { contest_id: string }) => r.contest_id);
+  let activeContestId: string | null = null;
+  let isVirtualContest = true; // Default: treat as standalone
 
-    if (!virtualContest) {
+  if (contestIds.length > 0) {
+    const { data: contests } = await supabase
+      .from('contests')
+      .select('id, is_active, starts_at, ends_at')
+      .in('id', contestIds);
+
+    const ongoingContests = (contests || []).filter(
+      c => getContestStatus(c as { is_active: boolean; starts_at: string | null; ends_at: string | null }) === 'ongoing'
+    );
+
+    if (ongoingContests.length > 0) {
+      isVirtualContest = false;
+
       if (!user) {
         redirect('/problems');
       }
-      const [participantResult, timerResult] = await Promise.all([
-        supabase
-          .from('contest_participants')
-          .select('user_id')
-          .eq('user_id', user.id)
-          .eq('contest_id', problem.contest)
-          .maybeSingle(),
-        checkTimerExpiry(supabase, user.id, problem.contest)
-      ]);
 
-      const { data: participant } = participantResult;
-      if (!participant) {
-        redirect('/problems');
+      // Check if user is a participant in any of the ongoing contests
+      for (const contest of ongoingContests) {
+        const [participantResult, timerResult] = await Promise.all([
+          supabase
+            .from('contest_participants')
+            .select('user_id')
+            .eq('user_id', user.id)
+            .eq('contest_id', contest.id)
+            .maybeSingle(),
+          checkTimerExpiry(supabase, user.id, contest.id)
+        ]);
+
+        const { data: participant } = participantResult;
+        if (participant) {
+          const { expired } = timerResult;
+          if (expired) {
+            return (
+              <div className="bg-error/10 border border-error/20 rounded-lg p-4 max-w-6xl mx-auto mt-8">
+                <p className="text-sm text-error mb-2">Contest time has expired</p>
+              </div>
+            );
+          }
+          activeContestId = contest.id;
+          break;
+        }
       }
 
-      const { expired } = timerResult;
-      if (expired) {
-        return (
-          <div className="bg-error/10 border border-error/20 rounded-lg p-4 max-w-6xl mx-auto mt-8">
-            <p className="text-sm text-error mb-2">Contest time has expired</p>
-          </div>
-        );
+      // User is not a participant in any ongoing contest for this problem
+      if (!activeContestId) {
+        redirect('/problems');
       }
     }
   }
@@ -112,5 +138,13 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
     };
   });
 
-  return <ProblemDetailClient problem={problem} initialBestSummary={bestSummary} isVirtualContest={virtualContest} initialComments={initialComments} />;
+  return (
+    <ProblemDetailClient
+      problem={problem}
+      activeContestId={activeContestId}
+      initialBestSummary={bestSummary}
+      isVirtualContest={isVirtualContest}
+      initialComments={initialComments}
+    />
+  );
 }

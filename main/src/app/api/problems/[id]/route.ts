@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase, getServerSupabaseFromToken } from '@/lib/supabaseServer';
 import { checkTimerExpiry } from '@/utils/timerCheck';
+import { getContestStatus } from '@/utils/contestStatus';
 
 export async function GET(
   request: NextRequest,
@@ -43,32 +44,58 @@ export async function GET(
       );
     }
 
-    // If problem belongs to a contest, enforce participant-only access and timer validity
-    if (problem.contest) {
-      // Anonymous or no token → forbid
-      if (!bearer) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-      const { data: authUser, error: userErr } = await supabase.auth.getUser();
-      const userId = authUser?.user?.id;
-      if (userErr || !userId) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-      const { data: participant, error: partErr } = await supabase
-        .from('contest_participants')
-        .select('user_id')
-        .eq('user_id', userId)
-        .eq('contest_id', problem.contest)
-        .maybeSingle();
-      if (partErr || !participant) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
+    // Check if problem belongs to any ongoing contest
+    const { data: cpRows } = await supabase
+      .from('contest_problems')
+      .select('contest_id')
+      .eq('problem_id', id);
 
-      // Check if timer has expired
-      const { expired } = await checkTimerExpiry(supabase, userId, problem.contest);
-      if (expired) {
-        console.log('Timer expired for user', userId, 'in contest', problem.contest);
-        return NextResponse.json({ error: 'Contest time has expired' }, { status: 403 });
+    const contestIds = (cpRows || []).map((r: { contest_id: string }) => r.contest_id);
+
+    if (contestIds.length > 0) {
+      const { data: contests } = await supabase
+        .from('contests')
+        .select('id, is_active, starts_at, ends_at')
+        .in('id', contestIds);
+
+      const ongoingContests = (contests || []).filter(
+        c => getContestStatus(c as { is_active: boolean; starts_at: string | null; ends_at: string | null }) === 'ongoing'
+      );
+
+      if (ongoingContests.length > 0) {
+        // Anonymous or no token → forbid
+        if (!bearer) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        const { data: authUser, error: userErr } = await supabase.auth.getUser();
+        const userId = authUser?.user?.id;
+        if (userErr || !userId) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        // Check participation in any ongoing contest
+        let hasAccess = false;
+        for (const contest of ongoingContests) {
+          const { data: participant } = await supabase
+            .from('contest_participants')
+            .select('user_id')
+            .eq('user_id', userId)
+            .eq('contest_id', contest.id)
+            .maybeSingle();
+
+          if (participant) {
+            const { expired } = await checkTimerExpiry(supabase, userId, contest.id);
+            if (expired) {
+              return NextResponse.json({ error: 'Contest time has expired' }, { status: 403 });
+            }
+            hasAccess = true;
+            break;
+          }
+        }
+
+        if (!hasAccess) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
       }
     }
 

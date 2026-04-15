@@ -5,16 +5,16 @@ export default async function ContestLeaderboardPage({ params }: { params: Promi
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [contestResult, problemsFullResult] = await Promise.all([
+  const [contestResult, cpResult] = await Promise.all([
     supabase
       .from('contests')
       .select('name')
       .eq('id', id)
       .maybeSingle(),
     supabase
-      .from('problems')
-      .select('id')
-      .eq('contest', id)
+      .from('contest_problems')
+      .select('problem_id')
+      .eq('contest_id', id),
   ]);
 
   const { data: contestData, error: contestError } = contestResult;
@@ -25,8 +25,7 @@ export default async function ContestLeaderboardPage({ params }: { params: Promi
   }
 
   // Load leaderboard
-  const { data: problemsFullData } = problemsFullResult;
-  const problemIds = problemsFullData?.map(p => p.id) || [];
+  const problemIds = (cpResult.data || []).map((r: { problem_id: string }) => r.problem_id);
 
   let leaderboard: any[] = [];
   if (problemIds.length > 0) {

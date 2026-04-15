@@ -9,23 +9,20 @@ import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/Badge';
 
 interface ProblemRow {
-  id: string; name: string; contest: string | null; contest_name?: string | null;
+  id: string; name: string; contest_names: string[];
   is_active: boolean | null; created_at: string; updated_at: string; points: number;
 }
 
 export default function ManagerManageProblemsClient({
   initialProblems,
-  initialContests
 }: {
   initialProblems: ProblemRow[],
-  initialContests: { id: string, name: string }[]
 }) {
   const { session } = useAuth();
   const [problems, setProblems] = useState<ProblemRow[]>(initialProblems);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [availableContests] = useState<{ id: string, name: string }[]>(initialContests);
   const token = session?.access_token;
 
   const pendingProblems = useMemo(() => {
@@ -33,7 +30,7 @@ export default function ManagerManageProblemsClient({
     return problems.filter(p => {
       if (p.is_active) return false;
       if (!q) return true;
-      return p.name.toLowerCase().includes(q) || (p.contest_name || '').toLowerCase().includes(q);
+      return p.name.toLowerCase().includes(q) || p.contest_names.some(cn => cn.toLowerCase().includes(q));
     });
   }, [problems, search]);
 
@@ -41,7 +38,7 @@ export default function ManagerManageProblemsClient({
     const q = search.trim().toLowerCase();
     return problems.filter(p => {
       if (!q) return true;
-      return p.name.toLowerCase().includes(q) || (p.contest_name || '').toLowerCase().includes(q);
+      return p.name.toLowerCase().includes(q) || p.contest_names.some(cn => cn.toLowerCase().includes(q));
     });
   }, [problems, search]);
 
@@ -67,7 +64,7 @@ export default function ManagerManageProblemsClient({
   type Row = ProblemRow;
   const columns: Array<DataTableColumn<Row>> = [
     { key: 'name', header: 'Name', className: 'w-3/12', sortable: true, sortAccessor: (r) => r.name.toLowerCase(), render: (r) => <span className="text-foreground font-medium">{r.name}</span> },
-    { key: 'contest', header: 'Contest', className: 'w-2/12', sortable: true, sortAccessor: (r) => (r.contest_name || r.contest || '').toLowerCase(), render: (r) => <span className="text-text-muted">{r.contest_name || r.contest || '-'}</span> },
+    { key: 'contest', header: 'Contests', className: 'w-2/12', sortable: true, sortAccessor: (r) => (r.contest_names[0] || '').toLowerCase(), render: (r) => <span className="text-text-muted">{r.contest_names.length > 0 ? r.contest_names.join(', ') : '-'}</span> },
     { key: 'status', header: 'Status', className: 'w-1/12', sortable: true, sortAccessor: (r) => (r.is_active ? 1 : 0), render: (r) => <Badge variant={r.is_active ? 'success' : 'warning'}>{r.is_active ? 'Active' : 'Inactive'}</Badge> },
     { key: 'updated', header: 'Updated', className: 'w-2/12', sortable: true, sortAccessor: (r) => new Date(r.updated_at).getTime(), render: (r) => <span className="text-text-muted text-sm font-mono">{new Date(r.updated_at).toLocaleDateString()}</span> },
     {

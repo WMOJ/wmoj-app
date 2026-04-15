@@ -96,25 +96,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Assign selected problems to this contest
+    // Assign selected problems to this contest via junction table
     if (Array.isArray(problem_ids) && problem_ids.length > 0) {
-      const { error: problemError } = await supabase
-        .from('problems')
-        .update({ contest: id })
-        .in('id', problem_ids)
-        .is('contest', null)
-        .eq('created_by', authUser.id);
+      const rows = problem_ids.map((pid: string) => ({ contest_id: id, problem_id: pid }));
+      const { error: cpError } = await supabase
+        .from('contest_problems')
+        .insert(rows);
 
-      if (problemError) {
-        console.error('Problem assignment error:', problemError);
+      if (cpError) {
+        console.error('Problem assignment error:', cpError);
       }
     }
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         contest: data,
-        message: 'Contest created successfully' 
+        message: 'Contest created successfully'
       },
       { status: 201 }
     );

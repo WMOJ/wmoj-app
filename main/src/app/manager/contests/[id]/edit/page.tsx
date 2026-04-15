@@ -28,10 +28,17 @@ export default async function ManagerEditContestPage({ params }: { params: Promi
     redirect('/manager/contests/manage');
   }
 
-  const { data: contestProblems } = await supabase
-    .from('problems')
-    .select('id, name, points, difficulty')
-    .eq('contest', id);
+  // Load problems assigned to this contest via junction table
+  const { data: cpRows } = await supabase
+    .from('contest_problems')
+    .select('problem_id, problems(id, name, points)')
+    .eq('contest_id', id);
 
-  return <ManagerEditContestClient contest={contestData} initialProblems={contestProblems ?? []} />;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contestProblems = (cpRows || []).map((row: any) => {
+    const p = Array.isArray(row.problems) ? row.problems[0] : row.problems;
+    return { id: p.id as string, name: p.name as string, points: p.points as number | null };
+  });
+
+  return <ManagerEditContestClient contest={contestData} initialProblems={contestProblems} />;
 }

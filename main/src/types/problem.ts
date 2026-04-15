@@ -2,7 +2,6 @@ export interface Problem {
   id: string;
   name: string;
   content: string;
-  contest: string | null;
   input: string[];
   output: string[];
   created_at: string;

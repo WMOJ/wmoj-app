@@ -14,7 +14,7 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
   }
 
   // Check participation and load data concurrently
-  const [partResult, contestResult, problemsResult, problemsFullResult] = await Promise.all([
+  const [partResult, contestResult, cpResult] = await Promise.all([
     supabase
       .from('contest_participants')
       .select('user_id')
@@ -28,14 +28,9 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
       .eq('is_active', true)
       .maybeSingle(),
     supabase
-      .from('problems')
-      .select('id,name')
-      .eq('contest', id)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('problems')
-      .select('id')
-      .eq('contest', id)
+      .from('contest_problems')
+      .select('problem_id, problems(id, name, created_at)')
+      .eq('contest_id', id),
   ]);
 
   const { data: participationData } = partResult;
@@ -49,11 +44,21 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
   }
 
   const contest = contestData as Contest;
-  const problems = problemsResult.data || [];
+
+  // Extract problems from junction table result
+  const cpRows = cpResult.data || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const problems = cpRows
+    .map((row: any) => {
+      const p = Array.isArray(row.problems) ? row.problems[0] : row.problems;
+      return { id: p.id as string, name: p.name as string, created_at: p.created_at as string };
+    })
+    .sort((a: { created_at: string }, b: { created_at: string }) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
 
   // Load leaderboard initially
-  const { data: problemsFullData } = problemsFullResult;
-  const problemIds = problemsFullData?.map(p => p.id) || [];
+  const problemIds = problems.map((p: { id: string }) => p.id);
   
   let leaderboard: any[] = [];
   if (problemIds.length > 0) {

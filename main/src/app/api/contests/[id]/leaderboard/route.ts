@@ -13,18 +13,18 @@ export async function GET(
       : null;
     const supabase = bearer ? getServerSupabaseFromToken(bearer) : await getServerSupabase();
 
-    // Get all problems for this contest first.
-    const { data: problems, error: problemsErr } = await supabase
-      .from('problems')
-      .select('id')
-      .eq('contest', id);
+    // Get all problems for this contest via junction table.
+    const { data: cpRows, error: cpErr } = await supabase
+      .from('contest_problems')
+      .select('problem_id')
+      .eq('contest_id', id);
 
-    if (problemsErr) {
-      console.log('Problems fetch error:', problemsErr);
+    if (cpErr) {
+      console.log('Contest problems fetch error:', cpErr);
       return NextResponse.json({ error: 'Failed to fetch problems' }, { status: 500 });
     }
 
-    const problemIds = problems?.map(p => p.id) || [];
+    const problemIds = (cpRows || []).map((r: { problem_id: string }) => r.problem_id);
     if (problemIds.length === 0) {
       return NextResponse.json({ leaderboard: [] });
     }

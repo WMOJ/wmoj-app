@@ -10,21 +10,18 @@ import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 import { validateSlug } from '@/utils/validation';
 
-interface Contest { id: string; name: string; }
-
 const MarkdownEditor = dynamic(() => import('@/components/MarkdownEditor').then(m => m.MarkdownEditor), { ssr: false });
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), { ssr: false, loading: () => <div className="h-[300px] bg-surface-2 rounded-md animate-pulse" /> });
 
 const inputClass = "w-full h-10 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20";
 
-export default function ManagerCreateProblemClient({ initialContests }: { initialContests: Contest[] }) {
+export default function ManagerCreateProblemClient() {
   const { session } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [contests] = useState<Contest[]>(initialContests);
-  const [formData, setFormData] = useState({ id: '', name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', points: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', content: '', timeLimit: '5000', memoryLimit: '256', points: '' });
   const [generatorCode, setGeneratorCode] = useState('');
   const [genLoading, setGenLoading] = useState(false);
   const [generatedInput, setGeneratedInput] = useState<string[] | null>(null);
@@ -64,12 +61,12 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/manager/problems/create', {
         method: 'POST', headers,
-        body: JSON.stringify({ id: formData.id, name: formData.name, content: formData.content, contest: formData.contest || null, input: generatedInput, output: generatedOutput, timeLimit: parseInt(formData.timeLimit, 10), memoryLimit: parseInt(formData.memoryLimit, 10), points: parseInt(formData.points, 10) })
+        body: JSON.stringify({ id: formData.id, name: formData.name, content: formData.content, input: generatedInput, output: generatedOutput, timeLimit: parseInt(formData.timeLimit, 10), memoryLimit: parseInt(formData.memoryLimit, 10), points: parseInt(formData.points, 10) })
       });
       const json = await res.json();
       if (res.ok) {
         setSuccess('Problem created successfully!');
-        setFormData({ id: '', name: '', content: '', contest: '', timeLimit: '5000', memoryLimit: '256', points: '' });
+        setFormData({ id: '', name: '', content: '', timeLimit: '5000', memoryLimit: '256', points: '' });
         setGeneratorCode(''); setGeneratedInput(null); setGeneratedOutput(null); setGenError('');
         setTimeout(() => router.push('/manager/dashboard'), 2000);
       } else { setError(json.error || 'Failed to create problem'); }
@@ -83,7 +80,7 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
         <div className="w-full space-y-6">
           <div>
             <h1 className="text-xl font-semibold text-foreground">Create New Problem</h1>
-            <p className="text-sm text-text-muted mt-1">Add a new problem to a contest or create a standalone problem</p>
+            <p className="text-sm text-text-muted mt-1">Add a new problem. Assign it to contests from the contest editing page.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 max-w-4xl">
@@ -101,13 +98,6 @@ export default function ManagerCreateProblemClient({ initialContests }: { initia
             <MarkdownEditor value={formData.content} onChange={(value) => setFormData(prev => ({ ...prev, content: value }))} placeholder="Enter problem description..." height={500} />
 
             <div className="grid md:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <label htmlFor="contest" className="block text-sm font-medium text-foreground">Contest (Optional)</label>
-                <select id="contest" name="contest" value={formData.contest} onChange={handleChange} className={inputClass}>
-                  <option value="">Standalone Problem</option>
-                  {contests.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
               <div className="space-y-1.5">
                 <label htmlFor="points" className="block text-sm font-medium text-foreground">Points *</label>
                 <input type="number" id="points" name="points" value={formData.points} onChange={handleChange} required min="1" className={inputClass} placeholder="e.g. 3, 6, 10" />

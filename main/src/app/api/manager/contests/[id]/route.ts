@@ -52,31 +52,33 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     data = result.data;
   }
 
-  // Update problem assignments if problem_ids is provided
+  // Update problem assignments via junction table
   if (Array.isArray(body.problem_ids)) {
     const problemIds: string[] = body.problem_ids;
 
-    // Release problems no longer in the selection
-    if (problemIds.length > 0) {
+    // Get current assignments
+    const { data: current } = await supabase
+      .from('contest_problems')
+      .select('problem_id')
+      .eq('contest_id', id);
+    const currentIds = (current || []).map((r: { problem_id: string }) => r.problem_id);
+
+    // Remove problems no longer in the selection
+    const toRemove = currentIds.filter((pid: string) => !problemIds.includes(pid));
+    if (toRemove.length > 0) {
       await supabase
-        .from('problems')
-        .update({ contest: null })
-        .eq('contest', id)
-        .not('id', 'in', `(${problemIds.join(',')})`);
-    } else {
-      await supabase
-        .from('problems')
-        .update({ contest: null })
-        .eq('contest', id);
+        .from('contest_problems')
+        .delete()
+        .eq('contest_id', id)
+        .in('problem_id', toRemove);
     }
 
-    // Claim newly selected standalone problems
-    if (problemIds.length > 0) {
-      await supabase
-        .from('problems')
-        .update({ contest: id })
-        .in('id', problemIds)
-        .is('contest', null);
+    // Add newly selected problems
+    const currentSet = new Set(currentIds);
+    const toAdd = problemIds.filter(pid => !currentSet.has(pid));
+    if (toAdd.length > 0) {
+      const rows = toAdd.map(pid => ({ contest_id: id, problem_id: pid }));
+      await supabase.from('contest_problems').insert(rows);
     }
   }
 
@@ -89,16 +91,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const { supabase } = auth;
 
-  const { error: problemUpdateError } = await supabase
-    .from('problems')
-    .update({ contest: null })
-    .eq('contest', id);
-
-  if (problemUpdateError) {
-    console.error('Decouple problems error:', problemUpdateError);
-    return NextResponse.json({ error: 'Failed to decouple problems from contest' }, { status: 500 });
-  }
-
+  // ON DELETE CASCADE on contest_problems handles cleanup automatically
   const { error } = await supabase
     .from('contests')
     .delete()

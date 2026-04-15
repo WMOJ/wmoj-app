@@ -19,17 +19,24 @@ export async function GET(
     if (contestErr) return NextResponse.json({ error: 'Failed to load contest' }, { status: 500 });
     if (!contest || !contest.is_active) return NextResponse.json({ error: 'Contest inactive' }, { status: 403 });
 
-    const { data, error } = await supabase
-      .from('problems')
-      .select('id,name,content,contest,created_at')
-      .eq('contest', id)
-      .order('created_at', { ascending: true });
+    // Fetch problems via junction table
+    const { data: cpRows, error } = await supabase
+      .from('contest_problems')
+      .select('problem_id, problems(id, name, content, created_at)')
+      .eq('contest_id', id);
 
     if (error) return NextResponse.json({ error: 'Failed to load problems' }, { status: 500 });
-    return NextResponse.json({ problems: data || [] });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const problems = (cpRows || [])
+      .map((row: any) => {
+        const p = Array.isArray(row.problems) ? row.problems[0] : row.problems;
+        return { id: p.id, name: p.name, content: p.content, created_at: p.created_at };
+      })
+      .sort((a: { created_at: string }, b: { created_at: string }) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    return NextResponse.json({ problems });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-

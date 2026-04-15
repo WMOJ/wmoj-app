@@ -21,22 +21,21 @@ export async function checkContestParticipation(userId: string, contestId: strin
   }
 }
 
-export async function getContestIdForProblem(problemId: string): Promise<string | null> {
+export async function getContestIdsForProblem(problemId: string): Promise<string[]> {
   try {
     const { data, error } = await supabase
-      .from('problems')
-      .select('contest')
-      .eq('id', problemId)
-      .maybeSingle();
+      .from('contest_problems')
+      .select('contest_id')
+      .eq('problem_id', problemId);
 
     if (error) {
-      console.error('Error getting contest for problem:', error);
-      return null;
+      console.error('Error getting contests for problem:', error);
+      return [];
     }
 
-    return data?.contest || null;
+    return (data || []).map((r: { contest_id: string }) => r.contest_id);
   } catch (error) {
-    console.error('Error getting contest for problem:', error);
-    return null;
+    console.error('Error getting contests for problem:', error);
+    return [];
   }
 }

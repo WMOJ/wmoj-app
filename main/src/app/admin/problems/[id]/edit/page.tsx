@@ -18,17 +18,11 @@ export default async function EditProblemPage({ params }: { params: Promise<{ id
 
   if (!adminRow) redirect('/');
 
-  // Fetch problem and contests in parallel
-  const [{ data: problemData, error: problemError }, { data: contestsData }] = await Promise.all([
-    supabase
-      .from('problems')
-      .select('id,name,content,contest,is_active,time_limit,memory_limit,points,input,output,created_at,updated_at')
-      .eq('id', id)
-      .maybeSingle(),
-    supabase
-      .from('contests')
-      .select('id,name'),
-  ]);
+  const { data: problemData, error: problemError } = await supabase
+    .from('problems')
+    .select('id,name,content,is_active,time_limit,memory_limit,points,input,output,created_at,updated_at')
+    .eq('id', id)
+    .maybeSingle();
 
   if (problemError || !problemData) {
     redirect('/admin/problems/manage');
@@ -38,12 +32,9 @@ export default async function EditProblemPage({ params }: { params: Promise<{ id
   const { input: _input, output: _output, ...rest } = problemData;
   const testCaseCount = Array.isArray(_input) ? _input.length : 0;
 
-  const contests = contestsData || [];
-
   return (
     <EditProblemClient
       problem={{ ...rest, test_case_count: testCaseCount }}
-      initialContests={contests}
     />
   );
 }

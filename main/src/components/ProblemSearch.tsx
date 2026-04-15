@@ -7,7 +7,6 @@ export interface SearchableProblem {
   id: string;
   name: string;
   points: number | null;
-  difficulty: string | null;
 }
 
 interface ProblemSearchProps {
@@ -127,7 +126,6 @@ export default function ProblemSearch({
                 >
                   <span className="text-foreground truncate">{problem.name}</span>
                   <span className="text-text-muted text-xs shrink-0">
-                    {problem.difficulty && <span className="mr-2">{problem.difficulty}</span>}
                     {problem.points != null && <span>{problem.points} pts</span>}
                   </span>
                 </button>

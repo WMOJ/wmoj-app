@@ -1,6 +1,7 @@
 import { getServerSupabase } from '@/lib/supabaseServer';
 import ProblemsClient from './ProblemsClient';
 import { Problem } from '@/types/problem';
+import { getContestStatus } from '@/utils/contestStatus';
 
 export type HotProblem = Problem & { submission_count: number };
 
@@ -19,40 +20,34 @@ export default async function ProblemsPage({
 
   const supabase = await getServerSupabase();
 
-  // Fetch IDs of virtual contests (ended + active, or no time window)
-  // and inactive contests (problems in contests not yet activated)
-  const isoNow = new Date().toISOString();
-  const { data: virtualContestsWithEnd } = await supabase
+  // Find all contests and determine which are "ongoing" (problems should be hidden)
+  const { data: allContests } = await supabase
     .from('contests')
-    .select('id')
-    .eq('is_active', true)
-    .lt('ends_at', isoNow);
-  const { data: virtualContestsNoWindow } = await supabase
-    .from('contests')
-    .select('id')
-    .eq('is_active', true)
-    .is('starts_at', null)
-    .is('ends_at', null);
-  const { data: inactiveContests } = await supabase
-    .from('contests')
-    .select('id')
-    .eq('is_active', false);
-  const virtualIds = [
-    ...(virtualContestsWithEnd || []).map(c => c.id),
-    ...(virtualContestsNoWindow || []).map(c => c.id),
-    ...(inactiveContests || []).map(c => c.id),
-  ];
+    .select('id, is_active, starts_at, ends_at');
 
-  const orFilter = virtualIds.length > 0
-    ? `contest.is.null,contest.in.(${virtualIds.join(',')})`
-    : 'contest.is.null';
+  const ongoingContestIds = (allContests || [])
+    .filter(c => getContestStatus(c as { is_active: boolean; starts_at: string | null; ends_at: string | null }) === 'ongoing')
+    .map(c => c.id);
+
+  // Get problem IDs that are in ongoing contests (these should be excluded)
+  let excludedProblemIds: string[] = [];
+  if (ongoingContestIds.length > 0) {
+    const { data: cpRows } = await supabase
+      .from('contest_problems')
+      .select('problem_id')
+      .in('contest_id', ongoingContestIds);
+    excludedProblemIds = (cpRows || []).map((r: { problem_id: string }) => r.problem_id);
+  }
 
   let query = supabase
     .from('problems')
     .select('*', { count: 'exact' })
-    .or(orFilter)
     .eq('is_active', true)
     .order('created_at', { ascending: false });
+
+  if (excludedProblemIds.length > 0) {
+    query = query.not('id', 'in', `(${excludedProblemIds.join(',')})`);
+  }
 
   if (search) {
     query = query.ilike('name', `%${search}%`);
@@ -90,12 +85,17 @@ export default async function ProblemsPage({
 
   let hotProblems: HotProblem[] = [];
   if (topIds.length > 0) {
-    const { data: hotData } = await supabase
+    let hotQuery = supabase
       .from('problems')
       .select('*')
       .in('id', topIds)
-      .or(orFilter)
       .eq('is_active', true);
+
+    if (excludedProblemIds.length > 0) {
+      hotQuery = hotQuery.not('id', 'in', `(${excludedProblemIds.join(',')})`);
+    }
+
+    const { data: hotData } = await hotQuery;
     hotProblems = (hotData || [])
       .map(p => ({ ...p, submission_count: countMap[p.id] || 0 }))
       .sort((a, b) => b.submission_count - a.submission_count);

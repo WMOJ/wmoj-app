@@ -4,7 +4,7 @@ import { validateSlug } from '@/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, name, content, contest, input, output, timeLimit, memoryLimit, points } = await request.json();
+    const { id, name, content, input, output, timeLimit, memoryLimit, points } = await request.json();
 
     const slugError = validateSlug(id, 'Problem');
     if (slugError) {
@@ -112,7 +112,6 @@ export async function POST(request: NextRequest) {
           id,
           name,
           content,
-          contest: contest || null,
           input,
           output,
           is_active: false,

@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const [submissionsResult, contestJoinsResult] = await Promise.all([
       supabase
         .from('submissions')
-        .select('id, problem_id, created_at, summary, problems(id, name, contest)')
+        .select('id, problem_id, created_at, summary, problems(id, name)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(100),
@@ -43,14 +43,26 @@ export async function GET(request: Request) {
       console.error('Error fetching contest joins:', joinsErr);
     }
 
-    // Collect contest ids from problems to look up names
-    const contestIdSet = new Set<string>();
+    // Fetch contest associations for submitted problems via junction table
+    const problemIdSet = new Set<string>();
     for (const sub of submissions || []) {
-      const problem = Array.isArray(sub.problems) ? sub.problems[0] : sub.problems;
-      const c = problem?.contest;
-      if (c) contestIdSet.add(c as string);
+      if (sub.problem_id) problemIdSet.add(sub.problem_id as string);
     }
-    
+
+    const problemContestMap: Record<string, string> = {};
+    if (problemIdSet.size > 0) {
+      const { data: cpRows } = await supabase
+        .from('contest_problems')
+        .select('problem_id, contest_id')
+        .in('problem_id', Array.from(problemIdSet));
+      for (const row of cpRows || []) {
+        if (!problemContestMap[row.problem_id]) {
+          problemContestMap[row.problem_id] = row.contest_id;
+        }
+      }
+    }
+
+    const contestIdSet = new Set<string>(Object.values(problemContestMap));
     let contestNameById: Record<string, string> = {};
     if (contestIdSet.size > 0) {
       const { data: contestsData, error: contestsErr } = await supabase
@@ -60,7 +72,6 @@ export async function GET(request: Request) {
       if (contestsErr) {
         console.error('Error fetching contests for submissions:', contestsErr);
       } else {
-        // Use reduce for efficient map creation
         contestNameById = (contestsData || []).reduce<Record<string, string>>((acc, c: { id: string; name: string }) => {
           acc[c.id] = c.name;
           return acc;
@@ -93,7 +104,7 @@ export async function GET(request: Request) {
         const passed = Number(s.passed ?? 0);
         const failed = Number(s.failed ?? 0);
         const solved = total > 0 && failed === 0 && passed === total;
-        const contestId = problem?.contest as string | null | undefined;
+        const contestId = problem?.id ? (problemContestMap[problem.id] || null) : null;
         const contestName = contestId ? contestNameById[contestId] : undefined;
         activities.push({
           id: `sub-${sub.id}`,

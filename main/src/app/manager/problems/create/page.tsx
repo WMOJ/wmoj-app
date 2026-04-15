@@ -17,11 +17,5 @@ export default async function ManagerCreateProblemPage() {
 
   if (!managerRow) redirect('/');
 
-  const { data: contestsData } = await supabase
-    .from('contests')
-    .select('id,name,length,is_active,updated_at,created_at');
-
-  const contests = contestsData || [];
-
-  return <ManagerCreateProblemClient initialContests={contests} />;
+  return <ManagerCreateProblemClient />;
 }

@@ -14,12 +14,13 @@ import CommentsSection from '@/components/CommentsSection';
 
 interface ProblemDetailClientProps {
   problem: Problem;
+  activeContestId: string | null;
   initialBestSummary: { total: number; passed: number; failed: number } | null;
   isVirtualContest?: boolean;
   initialComments: Comment[];
 }
 
-export default function ProblemDetailClient({ problem, initialBestSummary, isVirtualContest, initialComments }: ProblemDetailClientProps) {
+export default function ProblemDetailClient({ problem, activeContestId, initialBestSummary, isVirtualContest, initialComments }: ProblemDetailClientProps) {
   const router = useRouter();
   const { user, profile } = useAuth();
   const { isActive, contestId } = useCountdown();
@@ -27,11 +28,11 @@ export default function ProblemDetailClient({ problem, initialBestSummary, isVir
   const bestSummary = initialBestSummary;
 
   useEffect(() => {
-    if (!problem?.contest || isVirtualContest) return;
+    if (!activeContestId || isVirtualContest) return;
     const countdownResolved = isActive !== undefined && (contestId !== null || !isActive);
     if (!countdownResolved) return;
-    if (!isActive || (contestId && contestId !== problem.contest)) router.replace('/contests');
-  }, [isActive, contestId, problem?.contest, router, isVirtualContest]);
+    if (!isActive || (contestId && contestId !== activeContestId)) router.replace('/contests');
+  }, [isActive, contestId, activeContestId, router, isVirtualContest]);
 
   const handleSubmitClick = () => {
     if (!user) { setShowAuthPrompt(true); return; }
@@ -45,11 +46,11 @@ export default function ProblemDetailClient({ problem, initialBestSummary, isVir
         {/* Back */}
         <button
           type="button"
-          onClick={() => router.push(problem?.contest && !isVirtualContest ? `/contests/${problem.contest}` : '/problems')}
+          onClick={() => router.push(activeContestId && !isVirtualContest ? `/contests/${activeContestId}` : '/problems')}
           className="text-sm text-text-muted hover:text-foreground inline-flex items-center gap-1.5"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" /></svg>
-          Back to {problem?.contest && !isVirtualContest ? 'Contest' : 'Problems'}
+          Back to {activeContestId && !isVirtualContest ? 'Contest' : 'Problems'}
         </button>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -59,8 +60,8 @@ export default function ProblemDetailClient({ problem, initialBestSummary, isVir
               {/* Header */}
               <div className="flex flex-wrap items-center gap-3 mb-5">
                 <h1 className="text-lg font-semibold text-foreground">{problem.name}</h1>
-                <Badge variant={problem.contest && !isVirtualContest ? 'info' : 'neutral'}>
-                  {problem.contest && !isVirtualContest ? 'Contest' : 'Standalone'}
+                <Badge variant={activeContestId && !isVirtualContest ? 'info' : 'neutral'}>
+                  {activeContestId && !isVirtualContest ? 'Contest' : 'Standalone'}
                 </Badge>
               </div>
 

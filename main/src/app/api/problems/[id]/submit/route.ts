@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabaseFromToken } from '@/lib/supabaseServer';
 import { checkTimerExpiry } from '@/utils/timerCheck';
-import { isContestVirtual } from '@/utils/contestStatus';
+import { getContestStatus } from '@/utils/contestStatus';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -15,10 +15,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const token = authHeader.substring(7).trim();
     const supabase = getServerSupabaseFromToken(token);
 
-    // Fetch problem and determine contest membership
+    // Fetch problem
     const { data: problem, error: probErr } = await supabase
       .from('problems')
-      .select('id, contest, input, output, time_limit, memory_limit')
+      .select('id, input, output, time_limit, memory_limit')
       .eq('id', id)
       .single();
     if (probErr || !problem) {
@@ -32,27 +32,46 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     const userId = authUser.user.id;
 
-    // If problem is part of a contest, ensure user is a participant and timer is valid
-    // (skip enforcement for virtual contests — their problems are standalone-accessible)
-    if (problem.contest) {
-      const virtual = await isContestVirtual(supabase, problem.contest);
+    // Check if problem is part of any ongoing contest
+    const { data: cpRows } = await supabase
+      .from('contest_problems')
+      .select('contest_id')
+      .eq('problem_id', id);
 
-      if (!virtual) {
-        const { data: participant, error: partErr } = await supabase
-          .from('contest_participants')
-          .select('user_id')
-          .eq('user_id', userId)
-          .eq('contest_id', problem.contest)
-          .maybeSingle();
-        if (partErr || !participant) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const contestIds = (cpRows || []).map((r: { contest_id: string }) => r.contest_id);
+
+    if (contestIds.length > 0) {
+      const { data: contests } = await supabase
+        .from('contests')
+        .select('id, is_active, starts_at, ends_at')
+        .in('id', contestIds);
+
+      const ongoingContests = (contests || []).filter(
+        c => getContestStatus(c as { is_active: boolean; starts_at: string | null; ends_at: string | null }) === 'ongoing'
+      );
+
+      if (ongoingContests.length > 0) {
+        let hasAccess = false;
+        for (const contest of ongoingContests) {
+          const { data: participant } = await supabase
+            .from('contest_participants')
+            .select('user_id')
+            .eq('user_id', userId)
+            .eq('contest_id', contest.id)
+            .maybeSingle();
+
+          if (participant) {
+            const { expired } = await checkTimerExpiry(supabase, userId, contest.id);
+            if (expired) {
+              return NextResponse.json({ error: 'Contest time has expired' }, { status: 403 });
+            }
+            hasAccess = true;
+            break;
+          }
         }
 
-        // Check if timer has expired
-        const { expired } = await checkTimerExpiry(supabase, userId, problem.contest);
-        if (expired) {
-          console.log('Timer expired for user', userId, 'in contest', problem.contest, '- submission rejected');
-          return NextResponse.json({ error: 'Contest time has expired' }, { status: 403 });
+        if (!hasAccess) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       }
     }
@@ -98,36 +117,36 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Persist submission
-    const { error: insErr } = await supabase.from('submissions').insert({
-      problem_id: problem.id,
-      user_id: userId,
-      language,
-      code,
-      input: problem.input,
-      output: problem.output,
+    const { error: insertErr } = await supabase
+      .from('submissions')
+      .insert({
+        problem_id: problem.id,
+        user_id: userId,
+        language,
+        code,
+        input: problem.input,
+        output: problem.output,
+        results: data.results,
+        summary: data.summary,
+      });
+
+    if (insertErr) {
+      console.error('Submission insert error:', insertErr);
+    }
+
+    // On first solve, update the user's solved count and recalculate points
+    if (isFirstSolve) {
+      await supabase.rpc('increment_problems_solved', { uid: userId });
+      await supabase.rpc('recalculate_user_points', { uid: userId });
+    }
+
+    return NextResponse.json({
       results: data.results,
       summary: data.summary,
+      firstSolve: isFirstSolve,
     });
-    if (insErr) {
-      console.warn('[submit] Failed to record submission:', insErr);
-    }
-
-    // Increment global problems_solved counter and recalculate points on first solve
-    if (isPassed && isFirstSolve) {
-      const { error: rpcErr } = await supabase.rpc('increment_problems_solved', { uid: userId });
-      if (rpcErr) {
-        console.warn('[submit] Failed to increment problems_solved:', rpcErr);
-      }
-
-      const { error: pointsErr } = await supabase.rpc('recalculate_user_points', { uid: userId });
-      if (pointsErr) {
-        console.warn('[submit] Failed to recalculate points:', pointsErr);
-      }
-    }
-
-    return NextResponse.json({ results: data.results, summary: data.summary });
-  } catch (error) {
-    console.error('Submit error:', error);
+  } catch (err) {
+    console.error('Submit error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

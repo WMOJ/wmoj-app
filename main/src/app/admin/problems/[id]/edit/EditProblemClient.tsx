@@ -9,13 +9,10 @@ import { AdminGuard } from '@/components/AdminGuard';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 
-interface Contest { id: string; name: string; }
-
 interface ProblemData {
   id: string;
   name: string;
   content: string;
-  contest: string | null;
   is_active: boolean | null;
   time_limit: number | null;
   memory_limit: number | null;
@@ -30,17 +27,15 @@ const CodeEditor = dynamic(() => import('@/components/CodeEditor'), { ssr: false
 
 const inputClass = "w-full h-10 px-3 bg-surface-2 border border-border rounded-md text-sm text-foreground placeholder-text-muted/50 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20";
 
-export default function EditProblemClient({ problem, initialContests }: { problem: ProblemData; initialContests: Contest[] }) {
+export default function EditProblemClient({ problem }: { problem: ProblemData }) {
   const { session } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [contests] = useState<Contest[]>(initialContests);
   const [formData, setFormData] = useState({
     name: problem.name,
     content: problem.content || '',
-    contest: problem.contest || '',
     timeLimit: String(problem.time_limit || 5000),
     memoryLimit: String(problem.memory_limit || 256),
     points: String(problem.points),
@@ -79,7 +74,6 @@ export default function EditProblemClient({ problem, initialContests }: { proble
       const payload: Record<string, unknown> = {
         name: formData.name,
         content: formData.content,
-        contest: formData.contest || null,
         is_active: formData.is_active,
         time_limit: parseInt(formData.timeLimit, 10),
         memory_limit: parseInt(formData.memoryLimit, 10),
@@ -133,13 +127,6 @@ export default function EditProblemClient({ problem, initialContests }: { proble
             <MarkdownEditor value={formData.content} onChange={(value) => setFormData(prev => ({ ...prev, content: value }))} placeholder="Enter problem description..." height={500} />
 
             <div className="grid md:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <label htmlFor="contest" className="block text-sm font-medium text-foreground">Contest (Optional)</label>
-                <select id="contest" name="contest" value={formData.contest} onChange={handleChange} className={inputClass}>
-                  <option value="">Standalone Problem</option>
-                  {contests.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
               <div className="space-y-1.5">
                 <label htmlFor="points" className="block text-sm font-medium text-foreground">Points *</label>
                 <input type="number" id="points" name="points" value={formData.points} onChange={handleChange} required min="1" className={inputClass} placeholder="e.g. 3, 6, 10" />
