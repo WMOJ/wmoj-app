@@ -101,6 +101,22 @@ export default function CreateContestClient() {
               <MarkdownEditor value={formData.description} onChange={(value: string) => setFormData(prev => ({ ...prev, description: value }))} placeholder="Write contest description in Markdown..." height={360} />
             </div>
 
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">Contest Problems</label>
+              <p className="text-xs text-text-muted">
+                {formData.is_rated
+                  ? 'Rated contests can only include standalone problems not already in another contest.'
+                  : 'Search and select problems. Problems in rated ongoing/upcoming contests are excluded.'}
+              </p>
+              <ProblemSearch
+                searchEndpoint="/api/admin/problems/search"
+                accessToken={session?.access_token}
+                selectedProblems={selectedProblems}
+                onSelectedChange={setSelectedProblems}
+                targetRated={formData.is_rated}
+              />
+            </div>
+
             <div className="max-w-xs space-y-1.5">
               <label htmlFor="length" className="block text-sm font-medium text-foreground">Duration (minutes) *</label>
               <input type="number" id="length" name="length" value={formData.length} onChange={handleChange} required min="1" max="1440" className={inputClass} placeholder="60" />
@@ -148,22 +164,6 @@ export default function CreateContestClient() {
                 Rated Contest
               </label>
               <p className="text-xs text-text-muted">Rated contests will affect player rankings (not yet implemented).</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-foreground">Contest Problems</label>
-              <p className="text-xs text-text-muted">
-                {formData.is_rated
-                  ? 'Rated contests can only include standalone problems not already in another contest.'
-                  : 'Search and select problems. Problems in rated ongoing/upcoming contests are excluded.'}
-              </p>
-              <ProblemSearch
-                searchEndpoint="/api/admin/problems/search"
-                accessToken={session?.access_token}
-                selectedProblems={selectedProblems}
-                onSelectedChange={setSelectedProblems}
-                targetRated={formData.is_rated}
-              />
             </div>
 
             {/* Summary Preview */}

@@ -118,7 +118,7 @@ export default function ProblemSearch({
         )}
 
         {showDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-surface-2 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-50 w-full mt-1 bg-surface-2 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
             {filteredResults.length > 0 ? (
               filteredResults.map(problem => (
                 <button
