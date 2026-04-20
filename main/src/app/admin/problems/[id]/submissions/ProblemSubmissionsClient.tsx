@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AdminGuard } from '@/components/AdminGuard';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
-import { Badge } from '@/components/ui/Badge';
 import dynamic from 'next/dynamic';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from '@/components/ui/Toast';
@@ -16,11 +15,97 @@ const SyntaxHighlighter = dynamic(
   { ssr: false, loading: () => <div className="bg-surface-2 animate-pulse h-32 rounded-lg my-3" /> }
 );
 
+type Verdict = 'AC' | 'WA' | 'TLE' | 'MLE' | 'RE' | 'CE' | 'IE';
+
+interface TestResult {
+    index: number;
+    passed: boolean;
+    stdout: string;
+    stderr: string;
+    exitCode: number;
+    timedOut: boolean;
+    expected: string;
+    received: string;
+    // Additive fields from the rewritten judge:
+    verdict?: Verdict;
+    timeMs?: number;
+    cpuMs?: number;
+    memKb?: number;
+}
+
 interface Submission {
     id: string; user_id: string; username: string; email: string; language: string; code: string;
-    results: Array<{ index: number; passed: boolean; stdout: string; stderr: string; exitCode: number; timedOut: boolean; expected: string; received: string; }>;
+    results: TestResult[];
     summary: { total: number; passed: number; failed: number; };
+    compileError?: string | null;
     created_at: string;
+}
+
+// Map 'python'->Python, 'cpp17'->C++ 17, etc. Kept local; covers legacy + new codes.
+const LANGUAGE_DISPLAY: Record<string, string> = {
+    python: 'Python',
+    python3: 'Python 3',
+    pypy3: 'PyPy 3',
+    cpp: 'C++',
+    cpp14: 'C++ 14',
+    cpp17: 'C++ 17',
+    java: 'Java 17',
+};
+function displayLanguage(code: string): string {
+    return LANGUAGE_DISPLAY[code] || code.toUpperCase();
+}
+
+// Monaco syntax-highlighter language keys (distinct from our app codes).
+function syntaxLanguage(code: string): string {
+    if (code === 'pypy3' || code === 'python3') return 'python';
+    if (code === 'cpp14' || code === 'cpp17') return 'cpp';
+    return code;
+}
+
+// Aggregate per-submission verdict: CE > TLE > MLE > RE > WA > AC.
+// Uses explicit verdict fields when present, falling back to passed/timedOut.
+function aggregateVerdict(sub: Submission): Verdict {
+    if (sub.compileError) return 'CE';
+    const results = sub.results || [];
+    if (results.length === 0) {
+        const total = sub.summary?.total ?? 0;
+        if (total === 0) return 'CE';
+        return 'IE';
+    }
+    const rank: Verdict[] = ['TLE', 'MLE', 'RE', 'WA'];
+    for (const v of rank) {
+        if (results.some((r) => r.verdict === v)) return v;
+    }
+    // Fallback when no explicit verdicts on results (legacy rows backfilled
+    // to only AC/WA by the migration):
+    for (const r of results) {
+        if (!r.passed) {
+            if (r.timedOut) return 'TLE';
+            return 'WA';
+        }
+    }
+    return 'AC';
+}
+
+const VERDICT_STYLES: Record<Verdict, string> = {
+    AC: 'bg-success/10 text-success border border-success/20',
+    WA: 'bg-error/10 text-error border border-error/20',
+    TLE: 'bg-warning/10 text-warning border border-warning/20',
+    MLE: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+    RE: 'bg-red-900/20 text-red-400 border border-red-900/30',
+    CE: 'bg-surface-2 text-text-muted border border-border',
+    IE: 'bg-black/30 text-foreground border border-border',
+};
+
+function VerdictBadge({ verdict }: { verdict: Verdict }) {
+    return (
+        <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-semibold ${VERDICT_STYLES[verdict]}`}
+            title={verdict}
+        >
+            {verdict}
+        </span>
+    );
 }
 
 export default function ProblemSubmissionsClient({ 
@@ -60,12 +145,12 @@ export default function ProblemSubmissionsClient({
         },
         {
             key: 'status', header: 'Status', className: 'w-2/12', render: (r) => {
-                const passed = r.summary?.passed === r.summary?.total && r.summary?.total > 0;
-                return <Badge variant={passed ? 'success' : 'error'}>{passed ? 'Accepted' : 'Rejected'}</Badge>;
+                const v = aggregateVerdict(r);
+                return <VerdictBadge verdict={v} />;
             }
         },
         { key: 'score', header: 'Score', className: 'w-2/12', render: (r) => <span className="text-text-muted font-mono">{r.summary?.passed ?? 0}/{r.summary?.total ?? 0}</span> },
-        { key: 'language', header: 'Language', className: 'w-1/12', sortable: true, sortAccessor: (r) => r.language, render: (r) => <span className="uppercase text-xs font-mono bg-surface-2 px-2 py-0.5 rounded">{r.language}</span> },
+        { key: 'language', header: 'Language', className: 'w-1/12', sortable: true, sortAccessor: (r) => r.language, render: (r) => <span className="text-xs font-mono bg-surface-2 px-2 py-0.5 rounded">{displayLanguage(r.language)}</span> },
         { key: 'created_at', header: 'Date', className: 'w-2/12', sortable: true, sortAccessor: (r) => new Date(r.created_at).getTime(), render: (r) => <span className="text-text-muted text-sm font-mono">{new Date(r.created_at).toLocaleString()}</span> },
         {
             key: 'actions', header: 'Actions', className: 'w-3/12', render: (r) => (
@@ -115,9 +200,9 @@ export default function ProblemSubmissionsClient({
                                 {/* Stats */}
                                 <div className="grid grid-cols-3 gap-3">
                                     <div className="bg-surface-2 p-3 rounded-md border border-border">
-                                        <div className="text-text-muted text-xs uppercase tracking-wider">Status</div>
-                                        <div className={`text-sm font-semibold mt-1 ${selectedSubmission.summary.passed === selectedSubmission.summary.total ? 'text-success' : 'text-error'}`}>
-                                            {selectedSubmission.summary.passed === selectedSubmission.summary.total ? 'Accepted' : 'Rejected'}
+                                        <div className="text-text-muted text-xs uppercase tracking-wider">Verdict</div>
+                                        <div className="mt-1">
+                                            <VerdictBadge verdict={aggregateVerdict(selectedSubmission)} />
                                         </div>
                                     </div>
                                     <div className="bg-surface-2 p-3 rounded-md border border-border">
@@ -126,7 +211,7 @@ export default function ProblemSubmissionsClient({
                                     </div>
                                     <div className="bg-surface-2 p-3 rounded-md border border-border">
                                         <div className="text-text-muted text-xs uppercase tracking-wider">Language</div>
-                                        <div className="text-sm font-semibold text-foreground mt-1 uppercase">{selectedSubmission.language}</div>
+                                        <div className="text-sm font-semibold text-foreground mt-1">{displayLanguage(selectedSubmission.language)}</div>
                                     </div>
                                 </div>
 
@@ -135,7 +220,7 @@ export default function ProblemSubmissionsClient({
                                     <h3 className="text-sm font-medium text-foreground mb-1.5">Source Code</h3>
                                     <div className="rounded-md overflow-hidden border border-border text-sm">
                                         <SyntaxHighlighter
-                                            language={selectedSubmission.language}
+                                            language={syntaxLanguage(selectedSubmission.language)}
                                             // @ts-ignore
                                             style={vscDarkPlus}
                                             customStyle={{ margin: 0, borderRadius: 0, maxHeight: '400px' }}
@@ -150,14 +235,25 @@ export default function ProblemSubmissionsClient({
                                 <div>
                                     <h3 className="text-sm font-medium text-foreground mb-1.5">Test Case Results</h3>
                                     <div className="space-y-1.5">
-                                        {selectedSubmission.results?.map((r, i) => (
+                                        {selectedSubmission.results?.map((r, i) => {
+                                            const v: Verdict = r.verdict
+                                                ? r.verdict
+                                                : r.passed
+                                                ? 'AC'
+                                                : r.timedOut
+                                                ? 'TLE'
+                                                : 'WA';
+                                            return (
                                             <div key={i} className={`p-2.5 rounded-md border ${r.passed ? 'bg-success/5 border-success/20' : 'bg-error/5 border-error/20'}`}>
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <span className={`font-medium text-sm ${r.passed ? 'text-success' : 'text-error'}`}>
-                                                        Case #{i + 1}: {r.passed ? 'Passed' : 'Failed'}
-                                                    </span>
-                                                    <span className="text-xs text-text-muted font-mono">
-                                                        Exit: {r.exitCode ?? 'N/A'} {r.timedOut ? '(Timed Out)' : ''}
+                                                <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+                                                    <div className="flex items-center gap-2">
+                                                        <VerdictBadge verdict={v} />
+                                                        <span className="text-sm font-medium text-foreground">Case #{i + 1}</span>
+                                                    </div>
+                                                    <span className="text-xs text-text-muted font-mono flex items-center gap-2">
+                                                        {typeof r.timeMs === 'number' && <span>{r.timeMs}ms</span>}
+                                                        {typeof r.memKb === 'number' && <span>{Math.round(r.memKb / 1024)}MB</span>}
+                                                        <span>Exit: {r.exitCode ?? 'N/A'}</span>
                                                     </span>
                                                 </div>
                                                 {!r.passed && (r.expected || r.received) && (
@@ -179,7 +275,8 @@ export default function ProblemSubmissionsClient({
                                                     </div>
                                                 )}
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

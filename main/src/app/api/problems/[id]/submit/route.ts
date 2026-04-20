@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabaseFromToken } from '@/lib/supabaseServer';
+import { getJudgeSharedSecret } from '@/lib/env';
 import { checkTimerExpiry } from '@/utils/timerCheck';
 import { getContestStatus } from '@/utils/contestStatus';
 
@@ -86,7 +87,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const JUDGE_URL = process.env.NEXT_PUBLIC_JUDGE_URL || 'http://localhost:4001';
     const resp = await fetch(`${JUDGE_URL}/submit`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Judge-Token': getJudgeSharedSecret(),
+      },
       body: JSON.stringify({
         language,
         code,
@@ -101,9 +105,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: data?.error || 'Judge error' }, { status: resp.status || 500 });
     }
 
+    // Judge returns compileError on CE with summary={0,0,0} and results=[].
+    // Stash the verdict + message in the existing summary JSON so no schema
+    // change is needed — teammate E owns the real verdict column migration.
+    const hasCompileError = typeof data?.compileError === 'string' && data.compileError.length > 0;
+    const summaryForStorage = hasCompileError
+      ? { ...(data.summary ?? { total: 0, passed: 0, failed: 0 }), verdict: 'CE', compileError: data.compileError as string }
+      : data.summary;
+
     // Check for first solve before inserting (so we don't count the new submission itself)
     const summary = data.summary as { failed?: number; total?: number } | null;
-    const isPassed = summary != null && (summary.failed ?? 1) === 0 && (summary.total ?? 0) > 0;
+    const isPassed = !hasCompileError && summary != null && (summary.failed ?? 1) === 0 && (summary.total ?? 0) > 0;
     let isFirstSolve = false;
     if (isPassed) {
       const { data: priorPass } = await supabase
@@ -127,7 +139,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         input: problem.input,
         output: problem.output,
         results: data.results,
-        summary: data.summary,
+        summary: summaryForStorage,
       });
 
     if (insertErr) {
@@ -142,8 +154,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({
       results: data.results,
-      summary: data.summary,
+      summary: summaryForStorage,
       firstSolve: isFirstSolve,
+      ...(hasCompileError ? { compileError: data.compileError } : {}),
     });
   } catch (err) {
     console.error('Submit error:', err);

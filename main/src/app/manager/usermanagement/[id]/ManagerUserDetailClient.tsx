@@ -109,8 +109,12 @@ export default function ManagerUserDetailClient({
 
   const languageLabels: Record<string, string> = {
     python: 'Python',
+    python3: 'Python 3',
+    pypy3: 'PyPy 3',
     cpp: 'C++',
-    java: 'Java',
+    cpp14: 'C++ 14',
+    cpp17: 'C++ 17',
+    java: 'Java 17',
   };
 
   const columns: Array<DataTableColumn<Row>> = [

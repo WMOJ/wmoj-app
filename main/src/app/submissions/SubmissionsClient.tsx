@@ -33,10 +33,16 @@ function formatRelativeTime(dateStr: string): string {
 // ─── Language label ───────────────────────────────────────────────────────────
 
 function languageLabel(lang: string): string {
-  if (lang === 'cpp') return 'C++';
-  if (lang === 'python') return 'Python';
-  if (lang === 'java') return 'Java';
-  return lang.toUpperCase();
+  switch (lang) {
+    case 'python':  return 'Python';
+    case 'python3': return 'Python 3';
+    case 'pypy3':   return 'PyPy 3';
+    case 'cpp':     return 'C++';
+    case 'cpp14':   return 'C++ 14';
+    case 'cpp17':   return 'C++ 17';
+    case 'java':    return 'Java 17';
+    default:        return lang.toUpperCase();
+  }
 }
 
 // ─── Pie Chart ────────────────────────────────────────────────────────────────
