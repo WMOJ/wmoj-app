@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase, getServerSupabaseFromToken } from '@/lib/supabaseServer';
+import { getJudgeSharedSecret } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +50,10 @@ export async function POST(request: NextRequest) {
     const JUDGE_URL = process.env.NEXT_PUBLIC_JUDGE_URL || 'http://localhost:4001';
     const resp = await fetch(`${JUDGE_URL}/generate-tests`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Judge-Token': getJudgeSharedSecret(),
+      },
       body: JSON.stringify({ language: 'cpp', code: source }),
     });
     const data = await resp.json();

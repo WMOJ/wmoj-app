@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 
+// The browser MUST NOT know the judge URL — we route through the Next.js
+// proxy at /api/status/health instead. The proxy forwards the health probe
+// server-side with the JUDGE_SHARED_SECRET header (server-only env var).
 interface JudgeStatus {
   name: string;
-  url: string;
   status: 'online' | 'offline' | 'loading';
   latency?: number;
 }
@@ -13,7 +15,6 @@ export default function StatusClient() {
   const [judges, setJudges] = useState<JudgeStatus[]>([
     {
       name: 'Primary Judge',
-      url: process.env.NEXT_PUBLIC_JUDGE_URL || 'http://localhost:4001',
       status: 'loading',
     },
   ]);

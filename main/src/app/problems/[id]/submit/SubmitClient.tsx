@@ -9,7 +9,6 @@ import { CodeEditorLoading } from '@/components/LoadingStates';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 import { Problem } from '@/types/problem';
 import { useCountdown } from '@/contexts/CountdownContext';
-import { Badge } from '@/components/ui/Badge';
 
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
   ssr: false,
@@ -22,26 +21,91 @@ interface SubmitClientProps {
   isVirtualContest?: boolean;
 }
 
+type Verdict = 'AC' | 'WA' | 'TLE' | 'MLE' | 'RE' | 'CE' | 'IE';
+
+interface TestResult {
+  index: number;
+  exitCode: number | null;
+  timedOut: boolean;
+  stdout: string;
+  stderr: string;
+  passed: boolean;
+  expected: string;
+  received: string;
+  // New optional fields from the rewritten judge (additive):
+  verdict?: Verdict;
+  timeMs?: number;
+  cpuMs?: number;
+  memKb?: number;
+}
+
 const languages = [
-  { value: 'python', label: 'Python' },
-  { value: 'cpp', label: 'C++' },
-  { value: 'java', label: 'Java' },
+  { value: 'python3', label: 'Python 3' },
+  { value: 'pypy3', label: 'PyPy 3' },
+  { value: 'cpp14', label: 'C++ 14' },
+  { value: 'cpp17', label: 'C++ 17' },
+  { value: 'java', label: 'Java 17' },
 ];
+
+// Per-verdict badge styling. AC=green, WA=red, TLE=amber, MLE=purple,
+// RE=dark-red, CE=gray, IE=black. We don't use the shared Badge component
+// for this because its palette doesn't include purple/dark-red/black.
+const VERDICT_STYLES: Record<Verdict, string> = {
+  AC: 'bg-success/10 text-success border border-success/20',
+  WA: 'bg-error/10 text-error border border-error/20',
+  TLE: 'bg-warning/10 text-warning border border-warning/20',
+  MLE: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+  RE: 'bg-red-900/20 text-red-400 border border-red-900/30',
+  CE: 'bg-surface-2 text-text-muted border border-border',
+  IE: 'bg-black/30 text-foreground border border-border',
+};
+
+function VerdictBadge({ verdict }: { verdict: Verdict }) {
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-semibold ${VERDICT_STYLES[verdict]}`}
+      title={verdict}
+    >
+      {verdict}
+    </span>
+  );
+}
+
+// Aggregate per-submission verdict derivation, matching the spec:
+// if compileError → 'CE'; else worst failure ranked TLE > MLE > RE > WA; else 'AC'.
+function aggregateVerdict(
+  results: TestResult[] | null | undefined,
+  compileError?: string | null,
+): Verdict {
+  if (compileError) return 'CE';
+  if (!results || results.length === 0) return 'IE';
+  const rank: Verdict[] = ['TLE', 'MLE', 'RE', 'WA'];
+  for (const v of rank) {
+    if (results.some((r) => r.verdict === v)) return v;
+  }
+  // Fall back to derived verdicts for rows without an explicit verdict field
+  // (should not happen for new judge traffic, but keeps the UI robust).
+  for (const r of results) {
+    if (!r.passed) {
+      if (r.timedOut) return 'TLE';
+      return 'WA';
+    }
+  }
+  return 'AC';
+}
 
 export default function SubmitClient({ problem, activeContestId, isVirtualContest }: SubmitClientProps) {
   const router = useRouter();
   const { user, session } = useAuth();
   const { isActive, contestId } = useCountdown();
 
-  const [selectedLanguage, setSelectedLanguage] = useState('python');
+  const [selectedLanguage, setSelectedLanguage] = useState('python3');
   const [codeText, setCodeText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [results, setResults] = useState<Array<{
-    index: number; exitCode: number | null; timedOut: boolean;
-    stdout: string; stderr: string; passed: boolean; expected: string; received: string;
-  }> | null>(null);
+  const [results, setResults] = useState<TestResult[] | null>(null);
   const [summary, setSummary] = useState<{ total: number; passed: number; failed: number } | null>(null);
+  const [compileError, setCompileError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeContestId || isVirtualContest) return;
@@ -56,6 +120,7 @@ export default function SubmitClient({ problem, activeContestId, isVirtualContes
     setSubmitError('');
     setResults(null);
     setSummary(null);
+    setCompileError(null);
     try {
       const resp = await fetch(`/api/problems/${problem.id}/submit`, {
         method: 'POST',
@@ -69,12 +134,17 @@ export default function SubmitClient({ problem, activeContestId, isVirtualContes
       if (!resp.ok) throw new Error(data?.error || 'Submission failed');
       setResults(data.results || []);
       setSummary(data.summary || null);
+      setCompileError(data.compileError || null);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Submission failed');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const agg: Verdict | null = summary || compileError
+    ? aggregateVerdict(results, compileError)
+    : null;
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-4">
@@ -144,7 +214,7 @@ export default function SubmitClient({ problem, activeContestId, isVirtualContes
           </button>
 
           {/* Results */}
-          {(submitting || summary) && (
+          {(submitting || summary || compileError) && (
             <div className="space-y-3">
               <div className="h-px bg-border" />
               {submitting ? (
@@ -152,16 +222,25 @@ export default function SubmitClient({ problem, activeContestId, isVirtualContes
                   <LoadingSpinner size="sm" />
                   <span className="text-sm text-text-muted">Evaluating...</span>
                 </div>
+              ) : compileError ? (
+                <>
+                  {/* Compile error panel */}
+                  <div className="p-3 rounded-lg bg-surface-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <VerdictBadge verdict="CE" />
+                      <span className="text-xs text-text-muted font-mono">Compile Error</span>
+                    </div>
+                    <pre className="p-2 rounded bg-surface-1 text-error overflow-x-auto border border-border text-xs whitespace-pre-wrap">{compileError}</pre>
+                  </div>
+                </>
               ) : summary ? (
                 <>
                   {/* Summary */}
                   <div className="p-3 rounded-lg bg-surface-2 space-y-3">
                     <div className="flex items-center justify-between">
-                      <Badge variant={summary.failed === 0 ? 'success' : 'error'}>
-                        {summary.failed === 0 ? 'Accepted' : 'Failed'}
-                      </Badge>
+                      {agg && <VerdictBadge verdict={agg} />}
                       <span className="text-sm font-mono font-semibold text-brand-primary">
-                        {Math.round((summary.passed / summary.total) * 100)}%
+                        {summary.total > 0 ? Math.round((summary.passed / summary.total) * 100) : 0}%
                       </span>
                     </div>
                     <div className="flex items-end justify-between">
@@ -175,7 +254,7 @@ export default function SubmitClient({ problem, activeContestId, isVirtualContes
                     <div className="w-full bg-surface-1 rounded h-1 overflow-hidden">
                       <div
                         className={`h-full ${summary.failed === 0 ? 'bg-success' : 'bg-brand-primary'}`}
-                        style={{ width: `${(summary.passed / summary.total) * 100}%` }}
+                        style={{ width: `${summary.total > 0 ? (summary.passed / summary.total) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
@@ -183,31 +262,44 @@ export default function SubmitClient({ problem, activeContestId, isVirtualContes
                   {/* Test case list */}
                   {results && results.length > 0 && (
                     <div className="space-y-1.5 max-h-[40vh] overflow-y-auto pr-1">
-                      {results.map((r) => (
-                        <div key={r.index} className="p-2.5 rounded-lg bg-surface-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${r.passed ? 'bg-success' : 'bg-error'}`} />
-                              <span className="text-xs text-foreground font-mono">Test {r.index + 1}</span>
+                      {results.map((r) => {
+                        // Prefer the judge-reported verdict; fall back to
+                        // pass/fail + timedOut when missing (legacy rows).
+                        const v: Verdict = r.verdict
+                          ? r.verdict
+                          : r.passed
+                          ? 'AC'
+                          : r.timedOut
+                          ? 'TLE'
+                          : 'WA';
+                        return (
+                          <div key={r.index} className="p-2.5 rounded-lg bg-surface-2">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <VerdictBadge verdict={v} />
+                                <span className="text-xs text-foreground font-mono">Test {r.index + 1}</span>
+                              </div>
+                              <div className="text-xs text-text-muted font-mono flex items-center gap-2">
+                                {typeof r.timeMs === 'number' && <span>{r.timeMs}ms</span>}
+                                {typeof r.memKb === 'number' && <span>{Math.round(r.memKb / 1024)}MB</span>}
+                                <span>exit {r.exitCode ?? 'N/A'}</span>
+                              </div>
                             </div>
-                            <span className="text-xs text-text-muted font-mono">
-                              exit {r.exitCode}{r.timedOut ? ' · TLE' : ''}
-                            </span>
+                            {!r.passed && v !== 'TLE' && v !== 'MLE' && (
+                              <div className="mt-2 space-y-1.5 text-xs font-mono">
+                                <div>
+                                  <div className="text-text-muted mb-0.5">Expected</div>
+                                  <pre className="p-1.5 rounded bg-surface-1 text-text-muted overflow-x-auto border border-border text-xs">{r.expected}</pre>
+                                </div>
+                                <div>
+                                  <div className="text-text-muted mb-0.5">Received</div>
+                                  <pre className="p-1.5 rounded bg-surface-1 text-error overflow-x-auto border border-border text-xs">{r.received}</pre>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          {!r.passed && (
-                            <div className="mt-2 space-y-1.5 text-xs font-mono">
-                              <div>
-                                <div className="text-text-muted mb-0.5">Expected</div>
-                                <pre className="p-1.5 rounded bg-surface-1 text-text-muted overflow-x-auto border border-border text-xs">{r.expected}</pre>
-                              </div>
-                              <div>
-                                <div className="text-text-muted mb-0.5">Received</div>
-                                <pre className="p-1.5 rounded bg-surface-1 text-error overflow-x-auto border border-border text-xs">{r.received}</pre>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
