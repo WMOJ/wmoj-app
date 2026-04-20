@@ -42,10 +42,6 @@ function languageLabel(lang: string): string {
     case 'cpp17':        return 'C++17 (GCC)';
     case 'cpp20':        return 'C++20 (GCC)';
     case 'cpp23':        return 'C++23 (GCC)';
-    // Legacy 'java' rows map to Java 8 (db-migrator backfills, defensive here).
-    case 'java':         return 'Java 8';
-    case 'java8':        return 'Java 8';
-    case 'java-latest':  return 'Java (latest)';
     default:             return lang.toUpperCase();
   }
 }

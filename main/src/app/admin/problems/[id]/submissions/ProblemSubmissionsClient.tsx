@@ -41,8 +41,8 @@ interface Submission {
     created_at: string;
 }
 
-// Map language codes to display labels. Covers current 8-language matrix plus
-// legacy codes ('python', 'cpp', 'java') so historic rows still render cleanly.
+// Map language codes to display labels. Covers current 6-language matrix plus
+// legacy codes ('python', 'cpp') so historic rows still render cleanly.
 const LANGUAGE_DISPLAY: Record<string, string> = {
     python: 'Python',
     python3: 'Python 3',
@@ -52,9 +52,6 @@ const LANGUAGE_DISPLAY: Record<string, string> = {
     cpp17: 'C++17 (GCC)',
     cpp20: 'C++20 (GCC)',
     cpp23: 'C++23 (GCC)',
-    java: 'Java 8',
-    java8: 'Java 8',
-    'java-latest': 'Java (latest)',
 };
 function displayLanguage(code: string): string {
     return LANGUAGE_DISPLAY[code] || code.toUpperCase();
@@ -64,7 +61,6 @@ function displayLanguage(code: string): string {
 function syntaxLanguage(code: string): string {
     if (code === 'pypy3' || code === 'python3') return 'python';
     if (code === 'cpp14' || code === 'cpp17' || code === 'cpp20' || code === 'cpp23') return 'cpp';
-    if (code === 'java8' || code === 'java-latest') return 'java';
     return code;
 }
 
