@@ -41,15 +41,20 @@ interface Submission {
     created_at: string;
 }
 
-// Map 'python'->Python, 'cpp17'->C++ 17, etc. Kept local; covers legacy + new codes.
+// Map language codes to display labels. Covers current 8-language matrix plus
+// legacy codes ('python', 'cpp', 'java') so historic rows still render cleanly.
 const LANGUAGE_DISPLAY: Record<string, string> = {
     python: 'Python',
     python3: 'Python 3',
     pypy3: 'PyPy 3',
     cpp: 'C++',
-    cpp14: 'C++ 14',
-    cpp17: 'C++ 17',
-    java: 'Java 17',
+    cpp14: 'C++14 (GCC)',
+    cpp17: 'C++17 (GCC)',
+    cpp20: 'C++20 (GCC)',
+    cpp23: 'C++23 (GCC)',
+    java: 'Java 8',
+    java8: 'Java 8',
+    'java-latest': 'Java (latest)',
 };
 function displayLanguage(code: string): string {
     return LANGUAGE_DISPLAY[code] || code.toUpperCase();
@@ -58,7 +63,8 @@ function displayLanguage(code: string): string {
 // Monaco syntax-highlighter language keys (distinct from our app codes).
 function syntaxLanguage(code: string): string {
     if (code === 'pypy3' || code === 'python3') return 'python';
-    if (code === 'cpp14' || code === 'cpp17') return 'cpp';
+    if (code === 'cpp14' || code === 'cpp17' || code === 'cpp20' || code === 'cpp23') return 'cpp';
+    if (code === 'java8' || code === 'java-latest') return 'java';
     return code;
 }
 

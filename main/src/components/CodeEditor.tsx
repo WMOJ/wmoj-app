@@ -11,9 +11,9 @@ interface CodeEditorProps {
   height?: string;
 }
 
-// Map app-side language codes (including legacy 'python' and 'cpp') to
-// the identifiers Monaco understands. PyPy uses Python's grammar; the
-// two C++ dialects share the 'cpp' grammar.
+// Map app-side language codes (including legacy 'python', 'cpp', and 'java')
+// to the identifiers Monaco understands. PyPy uses Python's grammar; all
+// C++ dialects share the 'cpp' grammar; all Java variants share 'java'.
 const LANGUAGE_MAP: Record<string, string> = {
   python: 'python',
   python3: 'python',
@@ -21,7 +21,11 @@ const LANGUAGE_MAP: Record<string, string> = {
   cpp: 'cpp',
   cpp14: 'cpp',
   cpp17: 'cpp',
+  cpp20: 'cpp',
+  cpp23: 'cpp',
   java: 'java',
+  java8: 'java',
+  'java-latest': 'java',
 };
 
 export default function CodeEditor({ language, value, onChange, height = '400px' }: CodeEditorProps) {

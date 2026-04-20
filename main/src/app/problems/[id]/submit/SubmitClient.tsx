@@ -42,9 +42,12 @@ interface TestResult {
 const languages = [
   { value: 'python3', label: 'Python 3' },
   { value: 'pypy3', label: 'PyPy 3' },
-  { value: 'cpp14', label: 'C++ 14' },
-  { value: 'cpp17', label: 'C++ 17' },
-  { value: 'java', label: 'Java 17' },
+  { value: 'cpp14', label: 'C++14 (GCC)' },
+  { value: 'cpp17', label: 'C++17 (GCC)' },
+  { value: 'cpp20', label: 'C++20 (GCC)' },
+  { value: 'cpp23', label: 'C++23 (GCC)' },
+  { value: 'java8', label: 'Java 8' },
+  { value: 'java-latest', label: 'Java (latest)' },
 ];
 
 // Per-verdict badge styling. AC=green, WA=red, TLE=amber, MLE=purple,

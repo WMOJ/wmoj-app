@@ -34,14 +34,19 @@ function formatRelativeTime(dateStr: string): string {
 
 function languageLabel(lang: string): string {
   switch (lang) {
-    case 'python':  return 'Python';
-    case 'python3': return 'Python 3';
-    case 'pypy3':   return 'PyPy 3';
-    case 'cpp':     return 'C++';
-    case 'cpp14':   return 'C++ 14';
-    case 'cpp17':   return 'C++ 17';
-    case 'java':    return 'Java 17';
-    default:        return lang.toUpperCase();
+    case 'python':       return 'Python';
+    case 'python3':      return 'Python 3';
+    case 'pypy3':        return 'PyPy 3';
+    case 'cpp':          return 'C++';
+    case 'cpp14':        return 'C++14 (GCC)';
+    case 'cpp17':        return 'C++17 (GCC)';
+    case 'cpp20':        return 'C++20 (GCC)';
+    case 'cpp23':        return 'C++23 (GCC)';
+    // Legacy 'java' rows map to Java 8 (db-migrator backfills, defensive here).
+    case 'java':         return 'Java 8';
+    case 'java8':        return 'Java 8';
+    case 'java-latest':  return 'Java (latest)';
+    default:             return lang.toUpperCase();
   }
 }
 

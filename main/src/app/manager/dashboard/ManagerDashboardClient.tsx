@@ -64,9 +64,14 @@ export default function ManagerDashboardClient({ initialSubmissions }: { initial
     python3: 'Python 3',
     pypy3: 'PyPy 3',
     cpp: 'C++',
-    cpp14: 'C++ 14',
-    cpp17: 'C++ 17',
-    java: 'Java 17',
+    cpp14: 'C++14 (GCC)',
+    cpp17: 'C++17 (GCC)',
+    cpp20: 'C++20 (GCC)',
+    cpp23: 'C++23 (GCC)',
+    // Legacy 'java' rows (pre-migration) render as Java 8; backfill converts them to java8.
+    java: 'Java 8',
+    java8: 'Java 8',
+    'java-latest': 'Java (latest)',
   };
 
   const columns: Array<DataTableColumn<Row>> = [
