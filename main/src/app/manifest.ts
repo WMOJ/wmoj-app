@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'WMOJ - Competitive Programming',
+        name: 'WMOJ',
         short_name: 'WMOJ',
-        description: 'The ultimate competitive programming platform for coding enthusiasts.',
+        description: 'A modern open-source judge and competitive programming platform.',
         start_url: '/',
         display: 'standalone',
         background_color: '#000000',
