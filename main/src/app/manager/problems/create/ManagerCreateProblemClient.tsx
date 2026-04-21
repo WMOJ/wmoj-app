@@ -61,7 +61,7 @@ export default function ManagerCreateProblemClient() {
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/manager/problems/create', {
         method: 'POST', headers,
-        body: JSON.stringify({ id: formData.id, name: formData.name, content: formData.content, input: generatedInput, output: generatedOutput, timeLimit: parseInt(formData.timeLimit, 10), memoryLimit: parseInt(formData.memoryLimit, 10), points: parseInt(formData.points, 10) })
+        body: JSON.stringify({ id: formData.id, name: formData.name, content: formData.content, input: generatedInput, output: generatedOutput, timeLimit: parseInt(formData.timeLimit, 10), memoryLimit: parseInt(formData.memoryLimit, 10), points: parseInt(formData.points, 10), generator_file: generatorCode })
       });
       const json = await res.json();
       if (res.ok) {

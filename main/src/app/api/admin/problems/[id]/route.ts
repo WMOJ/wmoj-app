@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { supabase } = auth;
   const { data, error } = await supabase
     .from('problems')
-    .select('id,name,content,contest,is_active,time_limit,memory_limit,points,input,output,created_at,updated_at')
+    .select('id,name,content,contest,is_active,time_limit,memory_limit,points,input,output,generator_file,created_at,updated_at')
     .eq('id', id)
     .maybeSingle();
   if (error) {
@@ -80,6 +80,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     updates.input = body.input;
     updates.output = body.output;
+  }
+  if (body.generator_file !== undefined) {
+    if (body.input === undefined || body.output === undefined) {
+      return NextResponse.json({ error: 'generator_file can only be updated together with input/output' }, { status: 400 });
+    }
+    if (body.generator_file !== null && typeof body.generator_file !== 'string') {
+      return NextResponse.json({ error: 'generator_file must be a string' }, { status: 400 });
+    }
+    updates.generator_file = body.generator_file;
   }
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

@@ -18,6 +18,7 @@ interface ProblemData {
   memory_limit: number | null;
   points: number;
   test_case_count: number;
+  generator_file: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,7 +42,7 @@ export default function EditProblemClient({ problem }: { problem: ProblemData })
     points: String(problem.points),
     is_active: problem.is_active ?? true,
   });
-  const [generatorCode, setGeneratorCode] = useState('');
+  const [generatorCode, setGeneratorCode] = useState(problem.generator_file ?? '');
   const [genLoading, setGenLoading] = useState(false);
   const [generatedInput, setGeneratedInput] = useState<string[] | null>(null);
   const [generatedOutput, setGeneratedOutput] = useState<string[] | null>(null);
@@ -86,6 +87,7 @@ export default function EditProblemClient({ problem }: { problem: ProblemData })
         if (generatedInput.length !== generatedOutput.length) { setError('Input and output arrays must match.'); setLoading(false); return; }
         payload.input = generatedInput;
         payload.output = generatedOutput;
+        payload.generator_file = generatorCode;
       }
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };

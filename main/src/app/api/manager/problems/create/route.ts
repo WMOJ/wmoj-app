@@ -4,11 +4,15 @@ import { validateSlug } from '@/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, name, content, input, output, timeLimit, memoryLimit, points } = await request.json();
+    const { id, name, content, input, output, timeLimit, memoryLimit, points, generator_file } = await request.json();
 
     const slugError = validateSlug(id, 'Problem');
     if (slugError) {
       return NextResponse.json({ error: slugError }, { status: 400 });
+    }
+
+    if (generator_file !== undefined && generator_file !== null && typeof generator_file !== 'string') {
+      return NextResponse.json({ error: 'generator_file must be a string' }, { status: 400 });
     }
 
     if (!name || !content || !input || !output) {
@@ -82,7 +86,8 @@ export async function POST(request: NextRequest) {
           time_limit: timeLimit || 5000,
           memory_limit: memoryLimit || 256,
           points: points,
-          created_by: user.id
+          created_by: user.id,
+          generator_file: generator_file ?? null
         }
       ])
       .select()
