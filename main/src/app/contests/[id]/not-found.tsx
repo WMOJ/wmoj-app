@@ -1,0 +1,24 @@
+import Link from 'next/link';
+
+export default function ContestNotFound() {
+  return (
+    <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="glass-panel overflow-hidden">
+        <div className="bg-surface-2 px-6 py-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Contest not found</h2>
+        </div>
+        <div className="p-8 flex flex-col items-center gap-6 text-center">
+          <p className="text-sm text-text-muted">
+            This contest doesn&apos;t exist or isn&apos;t available.
+          </p>
+          <Link
+            href="/contests"
+            className="h-10 px-5 inline-flex items-center justify-center bg-brand-primary text-white text-sm font-medium rounded-md hover:bg-brand-secondary"
+          >
+            Back to contests
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

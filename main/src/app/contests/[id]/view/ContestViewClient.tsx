@@ -24,6 +24,7 @@ interface ContestDetail {
   starts_at: string | null;
   ends_at: string | null;
   is_rated: boolean;
+  is_active: boolean | null;
 }
 
 interface ContestProblem {
@@ -59,10 +60,10 @@ export default function ContestViewClient({ error, initialContest, problems = []
   const { startCountdown } = useCountdown();
 
   const isOwnContest = userRole === 'admin' && user?.id === initialContest?.created_by;
+  const isInactive = initialContest ? initialContest.is_active === false : false;
 
-  // The view page only loads active contests, so is_active is always true here
   const status: ContestStatus = initialContest
-    ? getContestStatus({ is_active: true, starts_at: initialContest.starts_at, ends_at: initialContest.ends_at })
+    ? getContestStatus({ is_active: initialContest.is_active !== false, starts_at: initialContest.starts_at, ends_at: initialContest.ends_at })
     : 'inactive';
 
   const [joining, setJoining] = useState(false);
@@ -139,7 +140,11 @@ export default function ContestViewClient({ error, initialContest, problems = []
                     </div>
                   </div>
 
-                  {isOwnContest ? (
+                  {isInactive ? (
+                    <div className="w-full h-10 flex items-center justify-center text-sm text-text-muted border border-border rounded-lg bg-surface-2 cursor-not-allowed select-none">
+                      Contest is inactive — not joinable
+                    </div>
+                  ) : isOwnContest ? (
                     <>
                       <div className="w-full h-10 flex items-center justify-center text-sm text-text-muted border border-border rounded-lg">
                         You created this contest

@@ -1,28 +1,37 @@
 import { getServerSupabase } from '@/lib/supabaseServer';
+import { notFound } from 'next/navigation';
 import ContestLeaderboardClient from './LeaderboardClient';
+import { canUserAccessContest } from '@/lib/contestAccess';
 
 export default async function ContestLeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [contestResult, cpResult] = await Promise.all([
+  const [contestResult, cpResult, authResult] = await Promise.all([
     supabase
       .from('contests')
-      .select('name')
+      .select('id, name, is_active, created_by')
       .eq('id', id)
       .maybeSingle(),
     supabase
       .from('contest_problems')
       .select('problem_id')
       .eq('contest_id', id),
+    supabase.auth.getUser(),
   ]);
 
   const { data: contestData, error: contestError } = contestResult;
-  const contestName = contestData?.name || 'Contest';
-
-  if (contestError) {
-    return <ContestLeaderboardClient error="Failed to load contest" contestName={contestName} />;
+  if (contestError || !contestData) {
+    notFound();
   }
+
+  const { data: authUser } = authResult;
+  const hasAccess = await canUserAccessContest(supabase, contestData, authUser?.user?.id ?? null);
+  if (!hasAccess) {
+    notFound();
+  }
+
+  const contestName = contestData.name || 'Contest';
 
   // Load leaderboard
   const problemIds = (cpResult.data || []).map((r: { problem_id: string }) => r.problem_id);

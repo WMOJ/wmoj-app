@@ -1,6 +1,7 @@
 import { getServerSupabase } from '@/lib/supabaseServer';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import ContestDetailClient from './ContestDetailClient';
+import { canUserAccessContest } from '@/lib/contestAccess';
 import type { Contest } from '@/types/contest';
 
 export default async function ContestPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +26,6 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
       .from('contests')
       .select('*')
       .eq('id', id)
-      .eq('is_active', true)
       .maybeSingle(),
     supabase
       .from('contest_problems')
@@ -33,17 +33,22 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
       .eq('contest_id', id),
   ]);
 
+  const { data: contestData, error: contestError } = contestResult;
+  if (contestError || !contestData) {
+    notFound();
+  }
+
+  const contest = contestData as Contest;
+
+  const hasAccess = await canUserAccessContest(supabase, contest, userId);
+  if (!hasAccess) {
+    notFound();
+  }
+
   const { data: participationData } = partResult;
   if (!participationData) {
     redirect('/contests');
   }
-
-  const { data: contestData, error: contestError } = contestResult;
-  if (contestError || !contestData) {
-    return <ContestDetailClient id={id} error="Failed to load contest or inactive" />;
-  }
-
-  const contest = contestData as Contest;
 
   // Extract problems from junction table result
   const cpRows = cpResult.data || [];

@@ -89,6 +89,14 @@ export default function ManagerManageContestsClient({ initialContests }: { initi
     {
       key: 'actions', header: 'Actions', className: 'w-[34%]', render: (r) => (
         <div className="flex gap-1.5">
+          <Link
+            href={`/contests/${r.id}/view`}
+            target="_blank"
+            rel="noopener"
+            className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-2 text-foreground hover:bg-surface-3"
+          >
+            View Contest
+          </Link>
           <Link href={`/manager/contests/${r.id}/edit`} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20">Edit</Link>
           <button onClick={() => toggleActive(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-warning/10 text-warning hover:bg-warning/20">{r.is_active ? 'Deactivate' : 'Activate'}</button>
           <button onClick={() => deleteContest(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20">Delete</button>
