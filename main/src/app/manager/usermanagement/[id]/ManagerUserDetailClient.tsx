@@ -7,13 +7,7 @@ import { ManagerGuard } from '@/components/ManagerGuard';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/Badge';
 import { toast } from '@/components/ui/Toast';
-import dynamic from 'next/dynamic';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
-const SyntaxHighlighter = dynamic(
-  () => import('react-syntax-highlighter').then((mod) => mod.Prism),
-  { ssr: false, loading: () => <div className="bg-surface-2 animate-pulse h-32 rounded-lg my-3" /> }
-);
+import { SubmissionCodeBlock } from '@/components/SubmissionCodeBlock';
 
 type TestResult = {
   index: number; passed: boolean; stdout: string; stderr: string;
@@ -317,15 +311,7 @@ export default function ManagerUserDetailClient({
                 <div>
                   <h3 className="text-sm font-medium text-foreground mb-1.5">Source Code</h3>
                   <div className="rounded-md overflow-hidden border border-border text-sm">
-                    <SyntaxHighlighter
-                      language={selectedSubmission.language}
-                      // @ts-ignore
-                      style={vscDarkPlus}
-                      customStyle={{ margin: 0, borderRadius: 0, maxHeight: '400px' }}
-                      showLineNumbers
-                    >
-                      {selectedSubmission.code}
-                    </SyntaxHighlighter>
+                    <SubmissionCodeBlock language={selectedSubmission.language} code={selectedSubmission.code} />
                   </div>
                 </div>
 

@@ -6,14 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { ManagerGuard } from '@/components/ManagerGuard';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
-import dynamic from 'next/dynamic';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SubmissionCodeBlock } from '@/components/SubmissionCodeBlock';
 import { toast } from '@/components/ui/Toast';
-
-const SyntaxHighlighter = dynamic(
-  () => import('react-syntax-highlighter').then((mod) => mod.Prism),
-  { ssr: false, loading: () => <div className="bg-surface-2 animate-pulse h-32 rounded-lg my-3" /> }
-);
 
 type Verdict = 'AC' | 'WA' | 'TLE' | 'MLE' | 'RE' | 'CE' | 'IE';
 
@@ -52,12 +46,6 @@ const LANGUAGE_DISPLAY: Record<string, string> = {
 };
 function displayLanguage(code: string): string {
     return LANGUAGE_DISPLAY[code] || code.toUpperCase();
-}
-
-function syntaxLanguage(code: string): string {
-    if (code === 'pypy3' || code === 'python3') return 'python';
-    if (code === 'cpp14' || code === 'cpp17' || code === 'cpp20' || code === 'cpp23') return 'cpp';
-    return code;
 }
 
 function aggregateVerdict(sub: Submission): Verdict {
@@ -210,15 +198,7 @@ export default function ManagerProblemSubmissionsClient({
                                 <div>
                                     <h3 className="text-sm font-medium text-foreground mb-1.5">Source Code</h3>
                                     <div className="rounded-md overflow-hidden border border-border text-sm">
-                                        <SyntaxHighlighter
-                                            language={syntaxLanguage(selectedSubmission.language)}
-                                            // @ts-ignore
-                                            style={vscDarkPlus}
-                                            customStyle={{ margin: 0, borderRadius: 0, maxHeight: '400px' }}
-                                            showLineNumbers
-                                        >
-                                            {selectedSubmission.code}
-                                        </SyntaxHighlighter>
+                                        <SubmissionCodeBlock language={selectedSubmission.language} code={selectedSubmission.code} />
                                     </div>
                                 </div>
 
