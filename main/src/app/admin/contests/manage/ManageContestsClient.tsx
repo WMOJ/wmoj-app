@@ -74,6 +74,14 @@ export default function ManageContestsClient({ initialContests }: { initialConte
         const isActive = !!r.is_active;
         return (
           <div className="flex gap-1.5">
+            <Link
+              href={`/contests/${r.id}/view`}
+              target="_blank"
+              rel="noopener"
+              className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-2 text-foreground hover:bg-surface-3"
+            >
+              View Contest
+            </Link>
             {isActive ? (
               <span
                 title="Cannot edit an activated contest"

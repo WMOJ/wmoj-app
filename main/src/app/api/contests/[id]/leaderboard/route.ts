@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSupabase, getServerSupabaseFromToken } from '@/lib/supabaseServer';
+import { canUserAccessContest } from '@/lib/contestAccess';
 
 export async function GET(
   request: Request,
@@ -12,6 +13,22 @@ export async function GET(
       ? authHeader.substring(7).trim()
       : null;
     const supabase = bearer ? getServerSupabaseFromToken(bearer) : await getServerSupabase();
+
+    const { data: contest, error: contestErr } = await supabase
+      .from('contests')
+      .select('id, is_active, created_by')
+      .eq('id', id)
+      .maybeSingle();
+    if (contestErr) {
+      console.log('Contest fetch error:', contestErr);
+      return NextResponse.json({ error: 'Failed to load contest' }, { status: 500 });
+    }
+    if (!contest) return NextResponse.json({ error: 'Contest not found' }, { status: 404 });
+
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData?.user?.id ?? null;
+    const hasAccess = await canUserAccessContest(supabase, contest, userId);
+    if (!hasAccess) return NextResponse.json({ error: 'Contest not found' }, { status: 404 });
 
     // Get all problems for this contest via junction table.
     const { data: cpRows, error: cpErr } = await supabase

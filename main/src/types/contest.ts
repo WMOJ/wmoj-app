@@ -11,6 +11,7 @@ export interface Contest {
   starts_at: string | null;
   ends_at: string | null;
   is_rated: boolean;
+  created_by: string | null;
   // Added at runtime (not necessarily persisted columns) for listing enrichment
   participants_count?: number;
   problems_count?: number;
