@@ -2,7 +2,8 @@ import { getServerSupabase } from '@/lib/supabaseServer';
 import SubmitClient from './SubmitClient';
 import { checkTimerExpiry } from '@/utils/timerCheck';
 import { getContestStatus } from '@/utils/contestStatus';
-import { redirect } from 'next/navigation';
+import { canUserAccessProblem } from '@/lib/problemAccess';
+import { notFound, redirect } from 'next/navigation';
 
 export default async function SubmitPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,11 +18,7 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
   const { data: problem, error } = problemResult;
 
   if (error || !problem) {
-    return (
-      <div className="bg-error/10 border border-error/20 rounded-lg p-4 max-w-6xl mx-auto mt-8">
-        <p className="text-sm text-error">Failed to fetch problem or problem not found</p>
-      </div>
-    );
+    notFound();
   }
 
   const { data: authUser } = authResult;
@@ -29,6 +26,11 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
 
   if (!user) {
     redirect('/auth/login');
+  }
+
+  const hasAccess = await canUserAccessProblem(supabase, problem, user.id);
+  if (!hasAccess) {
+    notFound();
   }
 
   // Determine if this problem is in any ongoing contest

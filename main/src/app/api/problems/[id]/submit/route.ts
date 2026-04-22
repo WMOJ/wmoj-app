@@ -3,6 +3,7 @@ import { getServerSupabaseFromToken } from '@/lib/supabaseServer';
 import { getJudgeSharedSecret } from '@/lib/env';
 import { checkTimerExpiry } from '@/utils/timerCheck';
 import { getContestStatus } from '@/utils/contestStatus';
+import { canUserAccessProblem } from '@/lib/problemAccess';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Fetch problem
     const { data: problem, error: probErr } = await supabase
       .from('problems')
-      .select('id, input, output, time_limit, memory_limit')
+      .select('id, input, output, time_limit, memory_limit, is_active, created_by')
       .eq('id', id)
       .single();
     if (probErr || !problem) {
@@ -32,6 +33,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = authUser.user.id;
+
+    const hasAccess = await canUserAccessProblem(supabase, problem, userId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Problem not found' }, { status: 404 });
+    }
 
     // Check if problem is part of any ongoing contest
     const { data: cpRows } = await supabase

@@ -57,6 +57,7 @@ export default function ManageProblemsClient({
     {
       key: 'actions', header: 'Actions', className: 'w-4/12', render: (r) => (
         <div className="flex gap-1.5">
+          <Link href={`/problems/${r.id}`} target="_blank" rel="noopener" className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-2 text-foreground hover:bg-surface-3">View Problem</Link>
           <Link href={`/admin/problems/${r.id}/submissions`} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-2 text-foreground hover:bg-surface-3">Submissions</Link>
           <Link href={`/admin/problems/${r.id}/edit`} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20">Edit</Link>
           <button onClick={() => deleteProblem(r)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20">Delete</button>

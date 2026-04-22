@@ -2,7 +2,8 @@ import { getServerSupabase } from '@/lib/supabaseServer';
 import ProblemDetailClient from './ProblemDetailClient';
 import { checkTimerExpiry } from '@/utils/timerCheck';
 import { getContestStatus } from '@/utils/contestStatus';
-import { redirect } from 'next/navigation';
+import { canUserAccessProblem } from '@/lib/problemAccess';
+import { notFound, redirect } from 'next/navigation';
 
 export default async function ProblemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,16 +25,17 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
   const { data: problem, error } = problemResult;
 
   if (error || !problem) {
-    return (
-      <div className="bg-error/10 border border-error/20 rounded-lg p-4 max-w-6xl mx-auto mt-8">
-        <p className="text-sm text-error mb-2">Failed to fetch problem or problem not found</p>
-      </div>
-    );
+    notFound();
   }
 
   // Auth and participation check
   const { data: authUser } = authResult;
   const user = authUser?.user;
+
+  const hasAccess = await canUserAccessProblem(supabase, problem, user?.id ?? null);
+  if (!hasAccess) {
+    notFound();
+  }
 
   // Determine if this problem is in any ongoing contest
   const contestIds = (cpResult.data || []).map((r: { contest_id: string }) => r.contest_id);
