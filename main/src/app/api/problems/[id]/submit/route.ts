@@ -134,32 +134,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       isFirstSolve = !priorPass || priorPass.length === 0;
     }
 
-    // Persist submission
-    const { error: insertErr } = await supabase
-      .from('submissions')
-      .insert({
-        problem_id: problem.id,
-        user_id: userId,
-        language,
-        code,
-        input: problem.input,
-        output: problem.output,
-        results: data.results,
-        summary: summaryForStorage,
-      });
+    // Persist submission — only for active problems. Test submissions by
+    // managers/admins against unpublished problems still run through the
+    // judge and the client still renders the returned results, but the row
+    // is not stored, so it disappears on reload and can never contribute to
+    // the solver stats. With this rule in place, the submissions table only
+    // ever contains rows for active problems, which is why the stat RPCs
+    // below no longer need an is_active filter.
+    if (problem.is_active) {
+      const { error: insertErr } = await supabase
+        .from('submissions')
+        .insert({
+          problem_id: problem.id,
+          user_id: userId,
+          language,
+          code,
+          input: problem.input,
+          output: problem.output,
+          results: data.results,
+          summary: summaryForStorage,
+        });
 
-    if (insertErr) {
-      console.error('Submission insert error:', insertErr);
-    }
+      if (insertErr) {
+        console.error('Submission insert error:', insertErr);
+      }
 
-    // On first solve, resync the user's solved count and points. Both RPCs
-    // are declarative re-derivations from the submissions table filtered to
-    // active problems — safe to call, cannot inflate state even if invoked
-    // directly. We still gate on is_active to avoid pointless DB work for
-    // manager/admin test submissions on unpublished problems.
-    if (isFirstSolve && problem.is_active) {
-      await supabase.rpc('recalculate_problems_solved', { uid: userId });
-      await supabase.rpc('recalculate_user_points', { uid: userId });
+      if (isFirstSolve) {
+        await supabase.rpc('recalculate_problems_solved', { uid: userId });
+        await supabase.rpc('recalculate_user_points', { uid: userId });
+      }
     }
 
     return NextResponse.json({
