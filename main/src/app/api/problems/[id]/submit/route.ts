@@ -152,13 +152,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.error('Submission insert error:', insertErr);
     }
 
-    // On first solve, update the user's solved count and recalculate points.
-    // Submissions to inactive problems (managers/admins previewing unpublished
-    // problems) must not contribute to rating — skip the stat bumps entirely.
-    // The recalculate_user_points SQL function also filters on is_active so
-    // subsequent recalcs for other problems won't pick these up either.
+    // On first solve, resync the user's solved count and points. Both RPCs
+    // are declarative re-derivations from the submissions table filtered to
+    // active problems — safe to call, cannot inflate state even if invoked
+    // directly. We still gate on is_active to avoid pointless DB work for
+    // manager/admin test submissions on unpublished problems.
     if (isFirstSolve && problem.is_active) {
-      await supabase.rpc('increment_problems_solved', { uid: userId });
+      await supabase.rpc('recalculate_problems_solved', { uid: userId });
       await supabase.rpc('recalculate_user_points', { uid: userId });
     }
 
