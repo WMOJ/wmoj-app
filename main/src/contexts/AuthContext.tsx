@@ -13,7 +13,7 @@ interface AuthContextType {
   profileLoading: boolean;
   userRole: UserRole | null;
   userDashboardPath: string | null;
-  signUp: (email: string, password: string, username: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, username: string) => Promise<{ data: { user: User | null; session: Session | null } | null; error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   refreshProfile: () => Promise<void>;
@@ -96,16 +96,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!userResult.data) {
-        // New user: insert then fetch profile (fetchUserProfile clears profileLoading)
-        updates.push(
-          Promise.resolve(supabase.from('users').insert({
+        // New user: insert then fetch profile (fetchUserProfile clears profileLoading).
+        // 23505 fallback: signup precheck makes username collisions near-impossible,
+        // but if one slips through we suffix the id so the row still lands and the
+        // verified auth.users row isn't orphaned.
+        const desired = currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user';
+        updates.push((async () => {
+          const insert = await supabase.from('users').insert({
             id: currentUser.id,
-            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
+            username: desired,
             email: currentUser.email || '',
             created_at: currentUser.created_at,
             last_login: now,
-          })).then(() => fetchUserProfile(currentUser.id))
-        );
+          });
+          if (insert.error?.code === '23505') {
+            await supabase.from('users').insert({
+              id: currentUser.id,
+              username: `${desired}_${currentUser.id.slice(0, 4)}`,
+              email: currentUser.email || '',
+              created_at: currentUser.created_at,
+              last_login: now,
+            });
+          }
+          await fetchUserProfile(currentUser.id);
+        })());
       } else {
         updates.push(
           Promise.resolve(supabase.from('users').update({ last_login: now, updated_at: now }).eq('id', currentUser.id))
@@ -196,12 +210,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [ensureUserSetup]);
 
   const signUp = async (email: string, password: string, username: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username } },
     });
-    return { error };
+    return { data, error };
   };
 
   const signIn = async (email: string, password: string) => {
