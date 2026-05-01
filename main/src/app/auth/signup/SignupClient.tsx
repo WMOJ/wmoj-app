@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
-import { validateUsername } from '@/utils/validation';
+import { validateEmail, validateUsername } from '@/utils/validation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LoadingSpinner } from '@/components/AnimationWrapper';
 
@@ -33,6 +33,12 @@ export default function SignupClient() {
       setLoading(false);
       return;
     }
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      setError(emailError);
+      setLoading(false);
+      return;
+    }
     const usernameError = validateUsername(formData.username);
     if (usernameError) {
       setError(usernameError);
@@ -40,8 +46,34 @@ export default function SignupClient() {
       return;
     }
 
+    let availability: { emailRegistered: boolean; usernameTaken: boolean };
     try {
-      const { error } = await signUp(formData.email, formData.password, formData.username);
+      const res = await fetch('/api/auth/check-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, username: formData.username }),
+      });
+      if (!res.ok) throw new Error('check failed');
+      availability = await res.json();
+    } catch {
+      setError('Could not verify availability — please try again.');
+      setLoading(false);
+      return;
+    }
+
+    if (availability.emailRegistered) {
+      setError('An account with this email already exists. Try logging in instead.');
+      setLoading(false);
+      return;
+    }
+    if (availability.usernameTaken) {
+      setError('This username is already taken. Please choose another.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await signUp(formData.email, formData.password, formData.username);
       if (error) {
         if (error.message.includes('For security purposes, you can only request this after')) {
           const seconds = error.message.match(/after (\d+) seconds/)?.[1] || 'some';
@@ -49,6 +81,10 @@ export default function SignupClient() {
         } else {
           setError(error.message);
         }
+      } else if (data?.user && (!data.user.identities || data.user.identities.length === 0)) {
+        // Supabase anti-enumeration: empty identities means the email is already
+        // registered. Treat the same as the precheck branch (TOCTOU safety net).
+        setError('An account with this email already exists. Try logging in instead.');
       } else {
         setSuccess('Account created! Please check your email to verify your account.');
       }
