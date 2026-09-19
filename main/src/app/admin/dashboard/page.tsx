@@ -19,6 +19,8 @@ export type AdminSubmissionRow = {
   language: string;
   status: string;
   score: string;
+  passedCount: number;
+  totalCount: number;
   passed: boolean;
   isCompileError: boolean;
 };
@@ -85,6 +87,8 @@ export default async function AdminDashboardPage({
       language: s.language,
       status: s.status || 'failed',
       score: summary.score,
+      passedCount: summary.passed,
+      totalCount: summary.total,
       passed: s.status === 'passed',
       isCompileError: summary.isCompileError,
     };

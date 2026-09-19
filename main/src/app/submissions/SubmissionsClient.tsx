@@ -10,6 +10,7 @@ import { SubmissionDetailModal } from '@/components/SubmissionDetailModal';
 import { useViewCode } from '@/hooks/useViewCode';
 import { toast } from '@/components/ui/Toast';
 import { displayLanguage } from '@/lib/languages';
+import { getSubmissionScoreCell } from '@/lib/submissionScoreCell';
 import type { SubmissionRow, SubmissionStats } from './page';
 import { formatSubmittedAt } from '@/utils/formatDate';
 
@@ -272,7 +273,7 @@ export default function SubmissionsClient({
               <table className="min-w-full text-left border-collapse whitespace-nowrap">
                 <thead className="sticky top-0 z-10 bg-surface-2">
                   <tr>
-                    <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-text-muted w-20 text-center">
+                    <th className="px-2 py-2.5 text-xs font-medium uppercase tracking-wide text-text-muted w-20 text-center border-r border-border">
                       Result
                     </th>
                     <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-text-muted">
@@ -294,26 +295,19 @@ export default function SubmissionsClient({
                     </tr>
                   ) : (
                     initialSubmissions.map((sub) => {
-                      const allPassed = sub.passed === sub.total && sub.total > 0;
-                      const somePassed = sub.passed > 0 && !allPassed;
-
-                      const scoreColorClass = allPassed
-                        ? 'bg-success/10 text-success border border-success/20'
-                        : somePassed
-                        ? 'bg-warning/10 text-warning border border-warning/20'
-                        : 'bg-error/10 text-error border border-error/20';
+                      const cell = getSubmissionScoreCell({
+                        passed: sub.passed,
+                        total: sub.total,
+                        isCompileError: sub.isCompileError,
+                      });
 
                       const isOwn = !!user && sub.user_id === user.id;
                       const isViewingCode = viewCodeLoading && selectedRow?.id === sub.id;
 
                       return (
                         <tr key={sub.id} className="hover:bg-surface-2 transition-colors">
-                          <td className="px-3 py-3 align-middle">
-                            <div className={`rounded-md px-2 py-1.5 text-center ${scoreColorClass}`}>
-                              <div className="text-xs font-mono font-semibold leading-tight">
-                                {sub.passed}/{sub.total}
-                              </div>
-                            </div>
+                          <td className={`w-20 px-2 py-3 text-center align-middle font-mono font-semibold text-xs border-r border-border ${cell.colorClass}`}>
+                            {cell.text}
                           </td>
                           <td className="px-4 py-3 align-middle">
                             <div className="text-sm font-medium text-foreground leading-tight">

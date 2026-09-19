@@ -11,34 +11,10 @@ import Pagination from '@/components/Pagination';
 import { usePaginatedNavigation } from '@/hooks/usePaginatedNavigation';
 import { useViewCode } from '@/hooks/useViewCode';
 import { toast } from '@/components/ui/Toast';
-import { VERDICT_STYLES, VerdictBadge } from '@/components/VerdictBadge';
+import { getSubmissionScoreCell } from '@/lib/submissionScoreCell';
 import { displayLanguage } from '@/lib/languages';
 import type { ProblemSubmissionRow } from './page';
 import { formatSubmittedAt } from '@/utils/formatDate';
-
-/** `submissions.created_at` is nullable in the schema. */
-type ListBadge = 'CE' | 'AC' | 'Failed';
-function listBadgeFromRow(r: ProblemSubmissionRow): ListBadge {
-  if (r.isCompileError) return 'CE';
-  if (r.status === 'passed') return 'AC';
-  return 'Failed';
-}
-
-// The list query deliberately omits `results` (AGENTS.md: never select code/results
-// in a submission-list query), so at this point TLE, MLE, RE and WA are genuinely
-// indistinguishable. Render the neutral "Failed" the dashboards already use rather
-// than asserting a verdict we do not have — the row's modal derives the real one
-// from `results`, fetched on demand, and the two must not contradict each other.
-function FailedBadge() {
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-semibold ${VERDICT_STYLES.WA}`}
-      title="Failed"
-    >
-      Failed
-    </span>
-  );
-}
 
 export default function ManagerProblemSubmissionsClient({
   initialSubmissions,
@@ -93,31 +69,83 @@ export default function ManagerProblemSubmissionsClient({
   type Row = ProblemSubmissionRow;
   const columns: Array<DataTableColumn<Row>> = [
     {
-      key: 'user', header: 'User', className: 'w-2/12', sortable: true, sortAccessor: (r) => (r.username || r.email).toLowerCase(), render: (r) => (
+      key: 'user',
+      header: 'User',
+      className: 'w-3/12',
+      sortable: true,
+      sortAccessor: (r) => (r.username || r.email).toLowerCase(),
+      render: (r) => (
         <div className="flex flex-col">
           <span className="font-medium text-foreground">{r.username}</span>
           <span className="text-xs text-text-muted">{r.email}</span>
         </div>
-      )
+      ),
     },
     {
-      key: 'status', header: 'Status', className: 'w-2/12', render: (r) => {
-        const badge = listBadgeFromRow(r);
-        if (badge === 'CE') return <VerdictBadge verdict="CE" />;
-        if (badge === 'AC') return <VerdictBadge verdict="AC" />;
-        return <FailedBadge />;
-      }
+      key: 'result',
+      header: 'Result',
+      className: 'w-20 text-center border-x border-border',
+      compactPadding: true,
+      cellClassName: (r) =>
+        `${getSubmissionScoreCell({
+          passed: r.summary?.passed,
+          total: r.summary?.total,
+          isCompileError: r.isCompileError,
+        }).colorClass} font-mono font-semibold text-xs`,
+      render: (r) =>
+        getSubmissionScoreCell({
+          passed: r.summary?.passed,
+          total: r.summary?.total,
+          isCompileError: r.isCompileError,
+        }).text,
     },
-    { key: 'score', header: 'Score', className: 'w-2/12', render: (r) => <span className="text-text-muted font-mono">{r.summary?.passed ?? 0}/{r.summary?.total ?? 0}</span> },
-    { key: 'language', header: 'Language', className: 'w-1/12', sortable: true, sortAccessor: (r) => r.language, render: (r) => <span className="text-xs font-mono bg-surface-2 px-2 py-0.5 rounded">{displayLanguage(r.language)}</span> },
-    { key: 'created_at', header: 'Date', className: 'w-2/12', sortable: true, sortAccessor: (r) => (r.created_at ? new Date(r.created_at).getTime() : 0), render: (r) => <span className="text-text-muted text-sm font-mono">{formatSubmittedAt(r.created_at)}</span> },
     {
-      key: 'actions', header: 'Actions', className: 'w-3/12', render: (r) => (
+      key: 'language',
+      header: 'Language',
+      className: 'w-2/12',
+      sortable: true,
+      sortAccessor: (r) => r.language,
+      render: (r) => (
+        <span className="text-xs font-mono bg-surface-2 px-2 py-0.5 rounded">
+          {displayLanguage(r.language)}
+        </span>
+      ),
+    },
+    {
+      key: 'created_at',
+      header: 'Date',
+      className: 'w-2/12',
+      sortable: true,
+      sortAccessor: (r) => (r.created_at ? new Date(r.created_at).getTime() : 0),
+      render: (r) => (
+        <span className="text-text-muted text-sm font-mono">
+          {formatSubmittedAt(r.created_at)}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      className: 'w-3/12',
+      render: (r) => (
         <div className="flex gap-1.5">
-          <button onClick={() => { setSelectedRow(r); openViewCode(r.id); }} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20">View Code</button>
-          <button onClick={() => deleteSubmission(r.id)} className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20">Delete</button>
+          <button
+            onClick={() => {
+              setSelectedRow(r);
+              openViewCode(r.id);
+            }}
+            className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20"
+          >
+            View Code
+          </button>
+          <button
+            onClick={() => deleteSubmission(r.id)}
+            className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-error/10 text-error hover:bg-error/20"
+          >
+            Delete
+          </button>
         </div>
-      )
+      ),
     },
   ];
 
