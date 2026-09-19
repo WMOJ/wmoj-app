@@ -7,6 +7,9 @@ export type DataTableColumn<Row> = {
   key: string;
   header: string;
   className?: string;
+  cellClassName?: (row: Row) => string;
+  noPadding?: boolean;
+  compactPadding?: boolean;
   render?: (row: Row) => ReactNode;
   /**
    * @deprecated No longer renders a control, and no longer sorts.
@@ -82,7 +85,7 @@ export function DataTable<Row extends object>(props: DataTableProps<Row>) {
                 <th
                   key={col.key}
                   scope="col"
-                  className={`px-4 py-2.5 ${theme.headerCell} ${col.className || ''}`}
+                  className={`${col.compactPadding ? 'px-2' : 'px-4'} py-2.5 ${theme.headerCell} ${col.className || ''}`}
                 >
                   {col.header}
                 </th>
@@ -96,7 +99,7 @@ export function DataTable<Row extends object>(props: DataTableProps<Row>) {
                   {columns.map((col, colIdx) => (
                     <td
                       key={col.key}
-                      className={`px-4 py-3 align-middle text-sm ${col.className || ''}`}
+                      className={`${col.compactPadding ? 'px-2 py-3' : col.noPadding ? 'p-0' : 'px-4 py-3'} align-middle text-sm ${col.className || ''}`}
                     >
                       <div
                         className="h-4 rounded loading-shimmer"
@@ -132,7 +135,10 @@ export function DataTable<Row extends object>(props: DataTableProps<Row>) {
                 return (
                   <tr key={key} className={`${theme.rowHover} group`}>
                     {columns.map((col) => (
-                      <td key={col.key} className={`px-4 py-3 align-middle text-sm text-foreground ${col.className || ''}`}>
+                      <td
+                        key={col.key}
+                        className={`${col.compactPadding ? 'px-2 py-3' : col.noPadding ? 'p-0' : 'px-4 py-3'} align-middle ${col.cellClassName ? col.cellClassName(row) : 'text-sm text-foreground'} ${col.className || ''}`}
+                      >
                         {col.render ? col.render(row) : ((row as unknown as Record<string, unknown>)[col.key] as ReactNode)}
                       </td>
                     ))}

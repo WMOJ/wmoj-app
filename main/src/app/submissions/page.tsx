@@ -18,6 +18,7 @@ export interface SubmissionRow {
   status: string;
   passed: number;
   total: number;
+  isCompileError: boolean;
   /** `submissions.created_at` is nullable in the schema. */
   created_at: string | null;
 }
@@ -200,6 +201,7 @@ export default async function SubmissionsPage({
                 status: s.status ?? 'failed',
                 passed: summary.passed,
                 total: summary.total,
+                isCompileError: summary.isCompileError,
                 created_at: s.created_at,
               };
             });

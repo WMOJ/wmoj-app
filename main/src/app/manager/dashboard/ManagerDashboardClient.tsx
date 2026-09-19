@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
-import { Badge } from '@/components/ui/Badge';
+import { getSubmissionScoreCell } from '@/lib/submissionScoreCell';
 import { SubmissionDetailModal } from '@/components/SubmissionDetailModal';
 import Pagination from '@/components/Pagination';
 import { usePaginatedNavigation } from '@/hooks/usePaginatedNavigation';
@@ -85,7 +85,7 @@ export default function ManagerDashboardClient({
     {
       key: 'user',
       header: 'User',
-      className: 'w-[18%]',
+      className: 'w-[20%]',
       sortable: true,
       sortAccessor: (r) => r.user.toLowerCase(),
       render: (r) => <span className="text-foreground font-medium">{r.user}</span>,
@@ -93,15 +93,35 @@ export default function ManagerDashboardClient({
     {
       key: 'problem',
       header: 'Problem',
-      className: 'w-[22%]',
+      className: 'w-[25%]',
       sortable: true,
       sortAccessor: (r) => r.problem.toLowerCase(),
       render: (r) => <span className="text-text-muted">{r.problem}</span>,
     },
     {
+      key: 'result',
+      header: 'Result',
+      className: 'w-20 text-center border-x border-border',
+      compactPadding: true,
+      cellClassName: (r) =>
+        `${getSubmissionScoreCell({
+          passed: r.passedCount,
+          total: r.totalCount,
+          score: r.score,
+          isCompileError: r.isCompileError,
+        }).colorClass} font-mono font-semibold text-xs`,
+      render: (r) =>
+        getSubmissionScoreCell({
+          passed: r.passedCount,
+          total: r.totalCount,
+          score: r.score,
+          isCompileError: r.isCompileError,
+        }).text,
+    },
+    {
       key: 'language',
       header: 'Language',
-      className: 'w-[10%]',
+      className: 'w-[12%]',
       sortable: true,
       sortAccessor: (r) => r.language,
       render: (r) => (
@@ -111,32 +131,9 @@ export default function ManagerDashboardClient({
       ),
     },
     {
-      key: 'score',
-      header: 'Score',
-      className: 'w-[8%]',
-      sortable: true,
-      sortAccessor: (r) => {
-        const parts = r.score.split('/');
-        if (parts.length !== 2) return -1;
-        return Number(parts[0]) / Number(parts[1]);
-      },
-      render: (r) => <span className="text-foreground font-mono text-sm">{r.score}</span>,
-    },
-    {
-      key: 'result',
-      header: 'Result',
-      className: 'w-[12%]',
-      sortable: true,
-      sortAccessor: (r) => (r.passed ? 1 : 0),
-      render: (r) => {
-        if (r.isCompileError) return <Badge variant="neutral">CE</Badge>;
-        return <Badge variant={r.passed ? 'success' : 'error'}>{r.passed ? 'Accepted' : 'Failed'}</Badge>;
-      },
-    },
-    {
       key: 'when',
       header: 'Submitted',
-      className: 'w-[15%]',
+      className: 'w-[18%]',
       sortable: true,
       sortAccessor: (r) => (r.timestamp ? new Date(r.timestamp).getTime() : 0),
       render: (r) => (

@@ -11,6 +11,7 @@ import { SubmissionDetailModal } from '@/components/SubmissionDetailModal';
 import Pagination from '@/components/Pagination';
 import { usePaginatedNavigation } from '@/hooks/usePaginatedNavigation';
 import { useViewCode } from '@/hooks/useViewCode';
+import { getSubmissionScoreCell } from '@/lib/submissionScoreCell';
 import { displayLanguage } from '@/lib/languages';
 import type { UserSubmissionRow } from './page';
 import { formatSubmittedAt } from '@/utils/formatDate';
@@ -152,10 +153,30 @@ export default function ManagerUserDetailClient({
     {
       key: 'problem',
       header: 'Problem',
-      className: 'w-[25%]',
+      className: 'w-[35%]',
       sortable: true,
       sortAccessor: (r) => r.problem.toLowerCase(),
       render: (r) => <span className="text-foreground font-medium">{r.problem}</span>,
+    },
+    {
+      key: 'result',
+      header: 'Result',
+      className: 'w-20 text-center border-x border-border',
+      compactPadding: true,
+      cellClassName: (r) =>
+        `${getSubmissionScoreCell({
+          passed: r.passedCount,
+          total: r.totalCount,
+          score: r.score,
+          isCompileError: r.isCompileError,
+        }).colorClass} font-mono font-semibold text-xs`,
+      render: (r) =>
+        getSubmissionScoreCell({
+          passed: r.passedCount,
+          total: r.totalCount,
+          score: r.score,
+          isCompileError: r.isCompileError,
+        }).text,
     },
     {
       key: 'language',
@@ -170,32 +191,9 @@ export default function ManagerUserDetailClient({
       ),
     },
     {
-      key: 'score',
-      header: 'Score',
-      className: 'w-[15%]',
-      sortable: true,
-      sortAccessor: (r) => {
-        const parts = r.score.split('/');
-        if (parts.length !== 2) return -1;
-        return Number(parts[0]) / Number(parts[1]);
-      },
-      render: (r) => <span className="text-foreground font-mono text-sm">{r.score}</span>,
-    },
-    {
-      key: 'result',
-      header: 'Result',
-      className: 'w-[15%]',
-      sortable: true,
-      sortAccessor: (r) => (r.passed ? 1 : 0),
-      render: (r) => {
-        if (r.isCompileError) return <Badge variant="neutral">CE</Badge>;
-        return <Badge variant={r.passed ? 'success' : 'error'}>{r.passed ? 'Accepted' : 'Failed'}</Badge>;
-      },
-    },
-    {
       key: 'when',
       header: 'Submitted',
-      className: 'w-[15%]',
+      className: 'w-[20%]',
       sortable: true,
       sortAccessor: (r) => (r.timestamp ? new Date(r.timestamp).getTime() : 0),
       render: (r) => (
