@@ -4,6 +4,7 @@ import { CONTEST_SCHEDULE_COLUMNS, type ContestScheduleRow } from '@/lib/queries
 import { NEWS_POST_FEED_COLUMNS } from '@/lib/queries/newsPosts';
 import { PROBLEM_RECENT_COLUMNS, type ProblemRecentRow } from '@/lib/queries/problems';
 import { getContestStatus } from '@/utils/contestStatus';
+import { fetchPlatformStats } from '@/lib/platformStats';
 
 export interface NewsPost {
   id: string;
@@ -27,7 +28,7 @@ export default async function HomePage() {
   let upcomingContests: CompactContest[] = [];
   let recentProblems: CompactProblem[] = [];
 
-  const [newsResult, contestsResult, problemsResult] = await Promise.all([
+  const [newsResult, contestsResult, problemsResult, stats] = await Promise.all([
     supabase
       .from('news_posts')
       .select(NEWS_POST_FEED_COLUMNS)
@@ -42,7 +43,8 @@ export default async function HomePage() {
       .select(PROBLEM_RECENT_COLUMNS)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
-      .limit(5)
+      .limit(5),
+    fetchPlatformStats(supabase),
   ]);
 
   if (!newsResult.error && newsResult.data) {
@@ -86,6 +88,7 @@ export default async function HomePage() {
       ongoingContests={ongoingContests}
       upcomingContests={upcomingContests}
       recentProblems={recentProblems}
+      stats={stats}
     />
   );
 }

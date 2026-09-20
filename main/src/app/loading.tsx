@@ -3,8 +3,22 @@ import { Skeleton, SkeletonCard } from '@/components/SkeletonLoader';
 export default function Loading() {
   return (
     <div role="status" aria-busy="true" aria-label="Loading" className="flex flex-col lg:flex-row gap-6">
-      {/* Left Column: News */}
-      <div className="flex-[3] min-w-0">
+      {/* Left Column: Welcome Banner & News */}
+      <div className="flex-[3] min-w-0 space-y-6">
+        {/* Welcome Banner Skeleton */}
+        <div className="glass-panel overflow-hidden">
+          <div className="bg-surface-2 px-6 py-4 border-b border-border flex items-center justify-between">
+            <Skeleton variant="text" width={280} height={20} />
+            <Skeleton variant="rectangular" width={20} height={20} />
+          </div>
+          <div className="p-6 space-y-3">
+            <Skeleton variant="text" width="90%" height={14} />
+            <Skeleton variant="text" width="95%" height={14} />
+            <Skeleton variant="text" width="80%" height={14} />
+          </div>
+        </div>
+
+        {/* News Skeleton */}
         <div className="glass-panel overflow-hidden">
           <div className="bg-surface-2 px-6 py-4 border-b border-border">
             <Skeleton variant="text" width={80} height={20} />
