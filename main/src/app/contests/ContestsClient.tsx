@@ -105,7 +105,7 @@ export default function ContestsClient({
 
   const renderSection = (title: string, rows: ContestListRow[], emptyMessage: string) => (
     <div className="glass-panel overflow-hidden">
-      <div className="bg-surface-2 px-4 py-3 border-b border-border">
+      <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       </div>
       {rows.length === 0 ? (
@@ -146,7 +146,7 @@ export default function ContestsClient({
 
           {/* Past Contests — paginated */}
           <div className="glass-panel overflow-hidden">
-            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+            <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
               <h2 className="text-sm font-semibold text-foreground">Past Contests</h2>
             </div>
             {pastContests.length === 0 && !pastIsLoading && pastTotalPages <= 1 ? (

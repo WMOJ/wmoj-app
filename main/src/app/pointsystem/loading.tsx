@@ -52,7 +52,7 @@ export default function Loading() {
 
       {/* Reference table */}
       <div className="glass-panel overflow-hidden">
-        <div className="px-6 py-3 border-b border-border flex gap-4">
+        <div className="bg-surface-2 px-6 h-9 border-b border-border flex items-center gap-4">
           <Skeleton variant="text" width="40%" height={14} />
           <Skeleton variant="text" width="40%" height={14} />
         </div>

@@ -13,12 +13,12 @@ export interface WelcomeBannerProps {
 export function WelcomeBanner({ stats }: WelcomeBannerProps) {
   return (
     <div className="glass-panel overflow-hidden">
-      <div className="bg-surface-2 px-6 py-4 border-b border-border flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">
+      <div className="bg-surface-2 px-6 h-9 border-b border-border flex items-center justify-between min-w-0 gap-2">
+        <h2 className="text-sm font-semibold text-foreground truncate">
           Welcome to the WMOJ: Modern Online Judge!
         </h2>
         <svg
-          className="w-5 h-5 text-text-muted shrink-0"
+          className="w-4 h-4 text-text-muted shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

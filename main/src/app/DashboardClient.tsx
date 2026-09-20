@@ -94,8 +94,8 @@ export default function DashboardClient({
         <WelcomeBanner stats={stats} />
 
         <div className="glass-panel overflow-hidden">
-          <div className="bg-surface-2 px-6 py-4 border-b border-border">
-            <h2 className="text-lg font-semibold text-foreground">News</h2>
+          <div className="bg-surface-2 px-6 h-9 border-b border-border flex items-center">
+            <h2 className="text-sm font-semibold text-foreground">News</h2>
           </div>
           
           {posts.length === 0 ? (
@@ -140,7 +140,7 @@ export default function DashboardClient({
         
         {/* Ongoing Contests */}
         <div className="glass-panel overflow-hidden">
-          <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+          <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Ongoing contests</h2>
           </div>
           <div className="divide-y divide-border">
@@ -163,7 +163,7 @@ export default function DashboardClient({
 
         {/* Upcoming Contests */}
         <div className="glass-panel overflow-hidden">
-          <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+          <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Upcoming contests</h2>
           </div>
           <div className="divide-y divide-border">
@@ -186,7 +186,7 @@ export default function DashboardClient({
 
         {/* New Problems */}
         <div className="glass-panel overflow-hidden">
-          <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+          <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">New problems</h2>
           </div>
           <div className="divide-y divide-border">

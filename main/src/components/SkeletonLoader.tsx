@@ -70,7 +70,7 @@ interface SkeletonTableProps {
 export function SkeletonTable({ rows = 5, columns = 4, className = '' }: SkeletonTableProps) {
   return (
     <div className={`glass-panel overflow-hidden ${className}`}>
-      <div className="px-6 py-3 border-b border-border flex gap-4">
+      <div className="bg-surface-2 px-6 h-9 border-b border-border flex items-center gap-4">
         {Array.from({ length: columns }).map((_, i) => (
           <Skeleton key={i} variant="text" width="20%" height={14} />
         ))}
