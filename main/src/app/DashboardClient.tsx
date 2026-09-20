@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { WelcomeBanner } from '@/components/WelcomeBanner';
 import { NewsPost, CompactContest, CompactProblem } from './page';
 import { formatTimeUntil } from '@/utils/contestStatus';
 import { toast } from '@/components/ui/Toast';
 import { NEWS_POST_FEED_COLUMNS } from '@/lib/queries/newsPosts';
+import type { PlatformStats } from '@/lib/platformStats';
 
 const NEWS_PAGE_SIZE = 10;
 
@@ -32,13 +34,15 @@ interface DashboardClientProps {
   ongoingContests: CompactContest[];
   upcomingContests: CompactContest[];
   recentProblems: CompactProblem[];
+  stats: PlatformStats;
 }
 
 export default function DashboardClient({ 
   initialNewsPosts,
   ongoingContests,
   upcomingContests,
-  recentProblems 
+  recentProblems,
+  stats,
 }: DashboardClientProps) {
   const [posts, setPosts] = useState<NewsPost[]>(initialNewsPosts || []);
   const [offset, setOffset] = useState(NEWS_PAGE_SIZE);
@@ -85,8 +89,10 @@ export default function DashboardClient({
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       
-      {/* Left Column: News */}
-      <div className="flex-[3] min-w-0">
+      {/* Left Column: Welcome Banner & News */}
+      <div className="flex-[3] min-w-0 space-y-6">
+        <WelcomeBanner stats={stats} />
+
         <div className="glass-panel overflow-hidden">
           <div className="bg-surface-2 px-6 py-4 border-b border-border">
             <h2 className="text-lg font-semibold text-foreground">News</h2>
