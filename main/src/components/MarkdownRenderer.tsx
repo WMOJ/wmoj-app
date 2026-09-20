@@ -286,7 +286,7 @@ export function MarkdownRenderer({ content, copyableCodeBlocks = false, classNam
               <tr className="border-b border-border">{children}</tr>
             ),
             th: ({ children }) => (
-              <th className="px-3 py-2 text-left text-foreground font-medium text-xs uppercase tracking-wider">{children}</th>
+              <th className="px-3 py-2.5 text-left text-foreground font-medium text-xs uppercase tracking-wider">{children}</th>
             ),
             td: ({ children }) => (
               <td className="px-3 py-2 text-text-muted">{children}</td>

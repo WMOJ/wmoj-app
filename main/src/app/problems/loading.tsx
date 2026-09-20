@@ -12,7 +12,7 @@ export default function Loading() {
         {/* Left Column: Problem List */}
         <div className="flex-[3] min-w-0">
           <div className="glass-panel overflow-hidden">
-            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+            <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
               <Skeleton variant="text" width={100} height={16} />
             </div>
             <div className="px-4 py-2 border-b border-border">
@@ -25,7 +25,7 @@ export default function Loading() {
         {/* Right Column: Sidebar */}
         <div className="flex-1 min-w-0 space-y-6">
           <div className="glass-panel overflow-hidden">
-            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+            <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
               <Skeleton variant="text" width={120} height={16} />
             </div>
             <div className="p-4 bg-surface-1">

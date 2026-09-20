@@ -159,7 +159,7 @@ export default function ManagerProblemSubmissionsClient({
         </div>
 
         <div className="glass-panel overflow-hidden">
-          <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+          <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">All Submissions</h2>
             <span className="text-xs text-text-muted font-mono">{totalCount} total</span>
           </div>

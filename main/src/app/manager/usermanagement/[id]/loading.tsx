@@ -27,13 +27,13 @@ export default function Loading() {
           <Skeleton className="h-3 w-16" />
         </div>
         <div className="glass-panel overflow-hidden">
-          <div className="bg-surface-2 px-4 py-3 border-b border-border">
+          <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
             <Skeleton className="h-4 w-28" />
           </div>
           <div className="px-4 py-2 border-b border-border">
             <Skeleton variant="rounded" className="h-8 w-full" />
           </div>
-          <SkeletonTable rows={10} columns={6} />
+          <SkeletonTable rows={10} columns={6} className="glass-panel overflow-hidden rounded-none border-0" />
         </div>
       </div>
       <span className="sr-only">Loading…</span>

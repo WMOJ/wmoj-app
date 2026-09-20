@@ -44,9 +44,11 @@ export default function Loading() {
 
       {/* Problems (virtual) */}
       <div className="glass-panel overflow-hidden">
-        <div className="bg-surface-2 px-4 py-3 border-b border-border space-y-1">
+        <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
           <Skeleton variant="text" width={90} height={16} />
-          <Skeleton variant="text" width="60%" height={12} />
+        </div>
+        <div className="px-4 py-2 border-b border-border bg-surface-1">
+          <Skeleton variant="text" width={240} height={12} />
         </div>
         <div className="divide-y divide-border">
           {Array.from({ length: 4 }).map((_, i) => (

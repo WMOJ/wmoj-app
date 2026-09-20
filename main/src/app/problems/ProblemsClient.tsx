@@ -113,7 +113,7 @@ export default function ProblemsClient({
         {/* Left Column: Problem List */}
         <div className="flex-[3] min-w-0">
           <div className="glass-panel overflow-hidden">
-            <div className="bg-surface-2 px-4 py-3 border-b border-border">
+            <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
               <h2 className="text-sm font-semibold text-foreground">Problems</h2>
             </div>
             {initialProblems.length === 0 && !isLoading ? (
@@ -146,7 +146,7 @@ export default function ProblemsClient({
 
           {/* Problem Search */}
           <div className="glass-panel overflow-hidden">
-            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+            <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
               <h2 className="text-sm font-semibold text-foreground">Problem search</h2>
             </div>
             <div className="p-4 bg-surface-1">
@@ -161,7 +161,7 @@ export default function ProblemsClient({
 
           {/* Hot Problems */}
           <div className="glass-panel overflow-hidden">
-            <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+            <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Hot problems</h2>
             </div>
             <div className="divide-y divide-border">

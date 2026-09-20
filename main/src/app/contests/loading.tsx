@@ -10,7 +10,7 @@ export default function Loading() {
 
       {/* Ongoing section */}
       <div className="glass-panel overflow-hidden">
-        <div className="bg-surface-2 px-4 py-3 border-b border-border">
+        <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
           <Skeleton variant="text" width={90} height={16} />
         </div>
         <SkeletonTable rows={3} columns={4} className="rounded-none border-0" />
@@ -18,7 +18,7 @@ export default function Loading() {
 
       {/* Upcoming section */}
       <div className="glass-panel overflow-hidden">
-        <div className="bg-surface-2 px-4 py-3 border-b border-border">
+        <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
           <Skeleton variant="text" width={100} height={16} />
         </div>
         <SkeletonTable rows={2} columns={4} className="rounded-none border-0" />
@@ -26,7 +26,7 @@ export default function Loading() {
 
       {/* Past section */}
       <div className="glass-panel overflow-hidden">
-        <div className="bg-surface-2 px-4 py-3 border-b border-border">
+        <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
           <Skeleton variant="text" width={110} height={16} />
         </div>
         <div className="px-4 py-2 border-b border-border">

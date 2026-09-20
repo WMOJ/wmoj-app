@@ -9,7 +9,7 @@ export default function Loading() {
       </div>
 
       <div className="glass-panel overflow-hidden">
-        <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between">
+        <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center justify-between">
           <Skeleton variant="text" height={16} width={160} />
           <Skeleton variant="text" height={14} width={80} />
         </div>

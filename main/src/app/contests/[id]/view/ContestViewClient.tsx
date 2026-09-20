@@ -196,11 +196,11 @@ export default function ContestViewClient({ error, initialContest, problems = []
             </div>
             {status === 'virtual' && problems.length > 0 && (
               <div className="glass-panel overflow-hidden">
-                <div className="bg-surface-2 px-4 py-3 border-b border-border">
+                <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
                   <h2 className="text-sm font-semibold text-foreground">Problems</h2>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    This contest has ended. Problems can be solved individually as practice.
-                  </p>
+                </div>
+                <div className="px-4 py-2 border-b border-border bg-surface-1 text-xs text-text-muted">
+                  This contest has ended. Problems can be solved individually as practice.
                 </div>
                 <div className="divide-y divide-border">
                   {problems.map((problem, i) => (

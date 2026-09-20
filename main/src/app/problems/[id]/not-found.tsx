@@ -4,8 +4,8 @@ export default function ProblemNotFound() {
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
       <div className="glass-panel overflow-hidden">
-        <div className="bg-surface-2 px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">Problem not found</h2>
+        <div className="bg-surface-2 px-6 h-9 border-b border-border flex items-center">
+          <h2 className="text-sm font-semibold text-foreground">Problem not found</h2>
         </div>
         <div className="p-8 flex flex-col items-center gap-6 text-center">
           <p className="text-sm text-text-muted">
