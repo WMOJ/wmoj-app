@@ -125,16 +125,18 @@ export default function ProblemsClient({
               </div>
             ) : (
               <>
-                <div className="px-4 py-2 border-b border-border">
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    buildHref={buildHref}
-                    displayPage={displayPage}
-                    loading={isLoading}
-                    onPageChange={handlePageChange}
-                  />
-                </div>
+                {totalPages > 1 && (
+                  <div className="px-4 py-2 border-b border-border">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      buildHref={buildHref}
+                      displayPage={displayPage}
+                      loading={isLoading}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                )}
                 <DataTable<ProblemListItem> columns={columns} rows={initialProblems} rowKey={(r) => r.id} headerVariant="gray" loading={isLoading} skeletonRowCount={PAGE_SIZE} />
               </>
             )}
