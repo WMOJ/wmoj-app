@@ -74,7 +74,7 @@ export default function UsersClient({
           value={search.value}
           onChange={(e) => search.onChange(e.target.value)}
           placeholder="Search by handle..."
-          className="w-1/4 h-8 px-3 rounded-md bg-surface-1 border border-border text-sm text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
+          className="w-1/4 h-8 px-3 rounded-md bg-surface-1 border border-border text-sm text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary ml-auto"
         />
       </div>
 

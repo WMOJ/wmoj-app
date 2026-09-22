@@ -149,16 +149,18 @@ export default function ManageContestsClient({
           <div className="bg-surface-2 px-4 h-9 border-b border-border flex items-center">
             <h2 className="text-sm font-semibold text-foreground">{staffStatusLabel(currentStatus)} Contests</h2>
           </div>
-          <div className="px-4 py-2 border-b border-border">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              buildHref={buildHref}
-              displayPage={displayPage}
-              loading={isLoading}
-              onPageChange={handlePageChange}
-            />
-          </div>
+          {totalPages > 1 && (
+            <div className="px-4 py-2 border-b border-border">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                buildHref={buildHref}
+                displayPage={displayPage}
+                loading={isLoading}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
           <DataTable<Row> columns={columns} rows={rows} rowKey={(r) => r.id} loading={isLoading} skeletonRowCount={20} />
         </div>
 

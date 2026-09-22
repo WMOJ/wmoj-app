@@ -149,16 +149,18 @@ export default function AdminDashboardClient({
             <h2 className="text-sm font-semibold text-foreground">Recent Submissions</h2>
             <span className="text-xs text-text-muted font-mono">{totalCount} total</span>
           </div>
-          <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              buildHref={buildHref}
-              displayPage={displayPage}
-              loading={isLoading}
-              onPageChange={handlePageChange}
-            />
-          </div>
+          {totalPages > 1 && (
+            <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                buildHref={buildHref}
+                displayPage={displayPage}
+                loading={isLoading}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
           {initialSubmissions.length > 0 || isLoading ? (
             <DataTable<Row> columns={columns} rows={initialSubmissions} rowKey={(r) => r.id} loading={isLoading} skeletonRowCount={20} />
           ) : (

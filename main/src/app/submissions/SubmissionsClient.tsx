@@ -258,16 +258,18 @@ export default function SubmissionsClient({
         <div className="flex-[3] min-w-0">
           <div className="glass-panel overflow-hidden">
             {/* Pagination row */}
-            <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                buildHref={buildHref}
-                displayPage={displayPage}
-                loading={isLoading}
-                onPageChange={handlePageChange}
-              />
-            </div>
+            {totalPages > 1 && (
+              <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  buildHref={buildHref}
+                  displayPage={displayPage}
+                  loading={isLoading}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="min-w-full text-left border-collapse whitespace-nowrap">
