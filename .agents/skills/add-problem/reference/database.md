@@ -65,7 +65,7 @@ values (
   $content$## Description
 ...the full markdown statement...
 $content$,
-  true,
+  false,
   1000,
   256,
   3,
@@ -98,8 +98,9 @@ $gen$
 
 - `input`/`output` must be **exactly** the arrays the live judge returned from `/generate-tests` —
   the same bytes you just verified. Do not reformat, re-indent, or regenerate them in between.
-- `is_active` is `true` because the ask is a visible, active problem. Leave it `false` only if the
-  user asked for a draft.
+- Insert with `is_active = false` and flip it to `true` only after the stored-data run in SKILL.md
+  step 8 passes — the ask is a visible, active problem, but never an unverified one. Leave it
+  `false` at the end only if the user asked for a draft.
 - Add a `checker` column to the insert (dollar-quoted like `generator_file`) only for a problem whose
   answer is not unique. Omit it otherwise; `NULL` means the judge compares bytes.
 - `created_by` may be left `null` if you have no user to attribute it to; it is nullable and only
@@ -127,6 +128,9 @@ them back out. Two things follow.
             from jsonb_array_elements_text(p.input) with ordinality t(x, ord)) as md5_so_far
   from public.problem_tests p where problem_id = 'ccc25j3';
   ```
+
+  The matching local digest is `jq -j '.input | join("\n")' tests.json | md5` — `-j`, not `-r`:
+  `string_agg` has no trailing newline and `-r` adds one, so the digests differ on identical data.
 
   A single bad element can be repaired in place with `jsonb_set(output, '{28}', to_jsonb(...))`
   rather than re-sending the whole chunk.
@@ -181,7 +185,7 @@ curl -s "$URL/rest/v1/problem_tests?problem_id=eq.ccc25j3&select=input,output,ge
   -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -o row.json
 
 jq '{input: .[0].input, output: .[0].output}' row.json > stored-tests.json
-jq -r '.[0].generator_file'                   row.json > stored-generator.cpp
+jq -j '.[0].generator_file'                   row.json > stored-generator.cpp
 ```
 
 This is read-only. It is a convenience for reading; **writes still go through the Supabase MCP**,

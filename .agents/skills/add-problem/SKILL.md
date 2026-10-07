@@ -70,7 +70,7 @@ the cohort to copy:
 | | Target | Seen across the CCC cohort |
 |---|---|---|
 | Cases | 15–50 | 15–55, averaging 25 |
-| Largest single case | under 150 KB | 119 KB |
+| Largest single case | under 25 KB, or formulaic — see below | 119 KB |
 | Total input + output | under 1.5 MB | 583 KB |
 | `time_limit` | 1000–2000 ms | 1000–3000 ms |
 | `memory_limit` | 256 MB | 256 MB throughout |
@@ -80,6 +80,23 @@ cover the interesting edge cases well, do not try to be exhaustive. A problem wh
 exceeds 1 MB is not "slow", it is **permanently unsubmittable** — the judge rejects the payload before
 compiling anything. Two legacy problems are in that state (`WOSS TriOlympiad: S2` at 1,477,908 bytes,
 `WOSS TriOlympiad: J3` at 1,001,009) and both have zero submissions as a result.
+
+**The binding limit on a single case is transcription, not the judge.** Step 7 moves every stored
+byte through your own context into an SQL insert, and `database.md` puts the ceiling on that at about
+25 KB per case. The judge's 1 MB cap is nowhere near it. So decide, in the generator, which of two
+shapes each large case has:
+
+- **Random draws ⇒ keep it under ~25 KB.** There is no way to move a 100 KB block of random numbers
+  into the insert reliably.
+- **A closed form ⇒ any size up to the 1 MB cap.** A case whose input is a formula — `repeat()`, an
+  arithmetic run, an LCG like `((i * A + B) % M) + 1` — is rebuilt exactly by Postgres with
+  `generate_series` and never transcribed at all, so it costs nothing to make large. Mirror the
+  formula in a comment in the generator, and `md5`-check the SQL against the generator's output
+  before committing it.
+
+Sizing a case at 150 KB of random data and discovering this at step 7 means regenerating and
+re-verifying from scratch — the largest case in `coci11c5p2` is 118 KB precisely because it is an
+LCG, while every randomised case in it stops at 2000 elements.
 
 Three more consequences of that host worth holding on to:
 
@@ -185,8 +202,9 @@ off-by-one, a brute force that ignores an edge case) and check it *fails*. A tes
 passes is not a test set.
 
 **7. Insert into Supabase.** See `reference/database.md` for the column reference, the dollar-quoted
-inserts, and the escaping traps. `is_active` is `true` — the ask is a visible, active problem. A
-problem is TWO inserts: the statement and limits into `problems`, the answer key into the staff-only
+inserts, and the escaping traps. Insert with `is_active = false`; step 8 flips it to `true` once the
+stored data passes, so an unverified problem is never live, not even for minutes. A problem is TWO
+inserts: the statement and limits into `problems`, the answer key into the staff-only
 `problem_tests`. Store `generator_file` alongside the tests (and `checker`, if the problem has one);
 a problem published without its generator is half-published. The 24 legacy problems that predate
 this skill have none, so their data can never be regenerated or audited — do not add a 25th.
@@ -207,7 +225,8 @@ This is the step that catches escaping damage and truncation on the round trip t
 it is the only run that tests the exact bytes a student's submission will be graded against. It must
 be 100% AC — it has caught two independent corruption events. `reference/database.md` shows how to
 pull the stored arrays into a file without reading them, and how to confirm the stored generator
-still reproduces the stored data exactly.
+still reproduces the stored data exactly. Only once both hold, `update public.problems set
+is_active = true where id = '…'` — the ask is a visible, active problem.
 
 **9. Report.** Give the user the problem id, title, points, limits, case count, total payload size,
 figures uploaded, and the verdict summary from step 8. If anything is left for them to do by hand —

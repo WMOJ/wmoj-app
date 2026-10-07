@@ -158,7 +158,9 @@ generator, work out roughly how many bytes each case will be and multiply.
 
 - A case at the top of the stated constraints is often far too big. `N ≤ 2×10^5` integers of up to
   10 digits is ~2 MB in one case — over the 1 MB per-case cap, so the problem would 413 and become
-  permanently unsubmittable. Cap `N` at whatever keeps the case under ~150 KB and say so in the
+  permanently unsubmittable. Cap `N` at whatever keeps the case under ~25 KB — or make the case a
+  closed form Postgres can rebuild, which lifts the ceiling to the judge's 1 MB (see the budget in
+  SKILL.md; transcription, not the judge, is what bounds a case of random data) — and say so in the
   test-plan comment.
 - Two problems on WMOJ already fell into exactly this trap (`WOSS TriOlympiad: S2` at 1,477,908
   bytes, `WOSS TriOlympiad: J3` at 1,001,009 bytes). Both are live, both have zero submissions,
