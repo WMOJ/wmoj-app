@@ -7,13 +7,6 @@ import { CONTEST_DETAIL_COLUMNS, type ContestDetailRow } from '@/lib/queries/con
 interface EmbeddedProblem {
   id: string;
   name: string;
-  /** `problems.created_at` is nullable; a row without one sorts first. */
-  created_at: string | null;
-}
-
-/** Oldest first, with a missing `created_at` treated as the epoch. */
-function addedAtMs(problem: { created_at: string | null }): number {
-  return problem.created_at ? new Date(problem.created_at).getTime() : 0;
 }
 
 export default async function ContestPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,11 +36,16 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
     // api/contests. Without it a pending problem was listed here and counted in
     // the metadata row, contradicting the badge on /contests and linking to a
     // /problems/<pending> that 404s via canUserAccessProblem.
+    // Listed in the order they were added to THIS contest (the junction's
+    // `created_at`, NOT NULL), so an organiser sets the order by adding them in
+    // it; `problem_id` breaks ties within one batch insert.
     supabase
       .from('contest_problems')
-      .select('problem_id, problems!inner(id, name, created_at, is_active)')
+      .select('problem_id, problems!inner(id, name, is_active)')
       .eq('contest_id', id)
-      .eq('problems.is_active', true),
+      .eq('problems.is_active', true)
+      .order('created_at', { ascending: true })
+      .order('problem_id', { ascending: true }),
   ]);
 
   const { data: contestData, error: contestError } = contestResult;
@@ -72,8 +70,7 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
   const problems = cpRows
     .map((row) => (Array.isArray(row.problems) ? row.problems[0] : row.problems))
     .filter((p): p is EmbeddedProblem => !!p)
-    .map((p) => ({ id: p.id, name: p.name, created_at: p.created_at }))
-    .sort((a, b) => addedAtMs(a) - addedAtMs(b));
+    .map((p) => ({ id: p.id, name: p.name }));
 
   return (
     <ContestDetailClient
