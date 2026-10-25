@@ -113,7 +113,8 @@ shape is a **cross-repo breaking change** — `wmoj-judge` has its own `AGENTS.m
 ## Conventions & don'ts
 
 - Tailwind v4 is CSS-first: **no `tailwind.config.*`**, tokens live in `app/globals.css`. Use them
-  (`bg-surface-2`, `text-text-muted`, `border-border`), not raw colors. **Dark mode does not exist.**
+  (`bg-surface-2`, `text-text-muted`, `border-border`), not raw colors. Dark mode is `.dark` on
+  `<html>`, set before paint by `lib/theme.ts`; text on a brand fill is `text-on-brand`.
 - **No `Button` component, and no `cn`/`clsx`/`twMerge`/`cva`** — none installed. Raw `<button>`s
   with template-literal ternaries *are* the convention; every component takes `className?` last.
 - **`MarkdownRenderer`'s rehype order `rehypeRaw → rehypeSanitize → rehypeKatex` is

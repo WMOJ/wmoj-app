@@ -416,7 +416,7 @@ export default function CommentsSection({ problemId, initialComments }: Comments
           {/* Avatar */}
           <Link href={`/users/${node.username}`} className="flex-shrink-0">
             {avatarErrors.has(node.id) ? (
-              <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-on-brand text-xs font-bold flex-shrink-0">
                 {node.username.charAt(0).toUpperCase()}
               </div>
             ) : (
@@ -499,7 +499,7 @@ export default function CommentsSection({ problemId, initialComments }: Comments
                 type="button"
                 onClick={() => handleSubmitReply(node.id)}
                 disabled={isSubmitting}
-                className="bg-brand-primary text-white text-sm font-medium rounded-lg px-4 py-1.5 hover:bg-brand-secondary transition-colors disabled:opacity-60"
+                className="bg-brand-primary text-on-brand text-sm font-medium rounded-lg px-4 py-1.5 hover:bg-brand-secondary transition-colors disabled:opacity-60"
               >
                 {isSubmitting ? 'Submitting...' : 'Reply'}
               </button>
@@ -545,7 +545,7 @@ export default function CommentsSection({ problemId, initialComments }: Comments
                 type="submit"
                 disabled={isSubmitting}
                 onClick={() => { if (!user) setShowAuthPrompt(true); }}
-                className="bg-brand-primary text-white text-sm font-medium rounded-lg px-4 py-2 hover:bg-brand-secondary transition-colors disabled:opacity-60"
+                className="bg-brand-primary text-on-brand text-sm font-medium rounded-lg px-4 py-2 hover:bg-brand-secondary transition-colors disabled:opacity-60"
               >
                 {isSubmitting ? 'Submitting...' : 'Comment'}
               </button>

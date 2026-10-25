@@ -13,7 +13,7 @@ export default function UserNotFound() {
           </p>
           <Link
             href="/users"
-            className="h-10 px-5 inline-flex items-center justify-center bg-brand-primary text-white text-sm font-medium rounded-md hover:bg-brand-secondary"
+            className="h-10 px-5 inline-flex items-center justify-center bg-brand-primary text-on-brand text-sm font-medium rounded-md hover:bg-brand-secondary"
           >
             Back to leaderboard
           </Link>

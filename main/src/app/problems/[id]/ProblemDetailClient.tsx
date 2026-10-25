@@ -127,7 +127,7 @@ export default function ProblemDetailClient({ problem, testCaseCount, activeCont
                 <button
                   type="button"
                   onClick={handleSubmitClick}
-                  className="w-full h-9 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-secondary transition-colors flex items-center justify-center gap-2"
+                  className="w-full h-9 bg-brand-primary text-on-brand text-sm font-medium rounded-lg hover:bg-brand-secondary transition-colors flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />

@@ -28,10 +28,10 @@ function getIntensity(count: number): number {
 
 const INTENSITY_COLORS = [
   'var(--surface-2)',
-  'rgba(5, 150, 105, 0.2)',
-  'rgba(5, 150, 105, 0.4)',
-  'rgba(5, 150, 105, 0.65)',
-  'rgba(5, 150, 105, 1)',
+  'color-mix(in srgb, var(--color-brand-primary) 20%, transparent)',
+  'color-mix(in srgb, var(--color-brand-primary) 40%, transparent)',
+  'color-mix(in srgb, var(--color-brand-primary) 65%, transparent)',
+  'var(--color-brand-primary)',
 ];
 
 // Every date helper here works in UTC end to end, and must keep doing so.

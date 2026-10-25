@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useOptimisticPathname } from "@/hooks/useOptimisticPathname";
 
 const navItems = [
@@ -222,11 +223,11 @@ export const UserNavbar = () => {
                     </button>
                     {isAboutOpen && (
                         <div className="absolute left-0 top-full pt-1 z-50">
-                            {/* data-surface="light" is load-bearing: globals.css
-                                re-declares the raw colour vars dark under
+                            {/* data-panel is load-bearing in light mode: globals.css
+                                re-declares the colour vars dark under
                                 [data-navbar], and this attribute resets them.
                                 A panel omitting it renders dark-on-dark. */}
-                            <div id="about-menu" data-surface="light" className="w-44 bg-surface-1 border border-border rounded-xl p-1.5 shadow-xl flex flex-col gap-0.5">
+                            <div id="about-menu" data-panel className="w-44 bg-surface-1 border border-border rounded-xl p-1.5 shadow-xl flex flex-col gap-0.5">
                                 <Link href="/status" onClick={(e) => { closeAbout(); handleNavClick(e, '/status'); }} aria-current={pathname === "/status" ? "page" : undefined} className="block w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 rounded-lg transition-colors">
                                     Status
                                 </Link>
@@ -251,6 +252,8 @@ export const UserNavbar = () => {
 
             <div className="flex-1" />
 
+            <ThemeToggle />
+
             {user ? (
                 <div className="relative" ref={menuRef}>
                     <button
@@ -262,7 +265,7 @@ export const UserNavbar = () => {
                         aria-haspopup="menu"
                         aria-controls="account-menu"
                         aria-label={displayName ? `Account menu for ${displayName}` : "Account menu"}
-                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/10 text-sm"
+                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface-2 text-sm"
                     >
                         {profileLoading ? (
                             <div className="flex items-center gap-2.5 animate-pulse">
@@ -287,7 +290,7 @@ export const UserNavbar = () => {
                                         onError={() => setAvatarError(true)}
                                     />
                                 ) : (
-                                    <div aria-hidden="true" className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
+                                    <div aria-hidden="true" className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-on-brand text-xs font-semibold">
                                         {initial}
                                     </div>
                                 )}
@@ -308,8 +311,8 @@ export const UserNavbar = () => {
                     </button>
 
                     {isMenuOpen && (
-                        /* data-surface="light" resets the dark [data-navbar] vars — see the About menu above. */
-                        <div id="account-menu" data-surface="light" className="absolute right-0 mt-2 w-48 bg-surface-1 border border-border rounded-xl p-1.5 shadow-xl z-50 flex flex-col gap-0.5">
+                        /* data-panel resets the dark [data-navbar] vars in light mode — see the About menu above. */
+                        <div id="account-menu" data-panel className="absolute right-0 mt-2 w-48 bg-surface-1 border border-border rounded-xl p-1.5 shadow-xl z-50 flex flex-col gap-0.5">
                             <div className="px-3 py-2 mb-1 border-b border-border/50">
                                 <p className="text-xs font-medium text-text-muted">Signed in as</p>
                                 <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
@@ -363,7 +366,7 @@ export const UserNavbar = () => {
                     </Link>
                     <Link
                         href="/auth/signup"
-                        className="px-4 py-1.5 text-sm font-medium bg-brand-primary text-white rounded-lg hover:bg-brand-secondary transition-colors"
+                        className="px-4 py-1.5 text-sm font-medium bg-brand-primary text-on-brand rounded-lg hover:bg-brand-secondary transition-colors"
                     >
                         Sign Up
                     </Link>

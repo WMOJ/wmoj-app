@@ -143,7 +143,7 @@ export default function ResetPasswordClient() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-10 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full h-10 bg-brand-primary text-on-brand text-sm font-medium rounded-lg hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? <><LoadingSpinner size="sm" /><span>Updating...</span></> : 'Update Password'}
               </button>

@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export const Header = () => {
     const { user, profile, userRole, profileLoading, signOut } = useAuth();
@@ -61,6 +62,7 @@ export const Header = () => {
 
     return (
         <header className="sticky top-0 z-40 h-14 border-b border-border bg-background flex items-center justify-end px-6 gap-3">
+            <ThemeToggle />
             <div className="relative" ref={menuRef}>
                 <button
                     ref={menuButtonRef}
@@ -93,7 +95,7 @@ export const Header = () => {
                                     onError={() => setAvatarError(true)}
                                 />
                             ) : (
-                                <div aria-hidden="true" className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-white text-xs font-semibold">
+                                <div aria-hidden="true" className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center text-on-brand text-xs font-semibold">
                                     {initial}
                                 </div>
                             )}

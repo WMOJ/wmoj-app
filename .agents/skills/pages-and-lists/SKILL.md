@@ -45,10 +45,14 @@ Copy `app/admin/problems/manage/`, don't invent a variant.
 - **No `Button` component, and no `cn`/`clsx`/`twMerge`/`cva`** — none installed. Raw `<button>`s
   with template-literal ternaries *are* the convention; every component takes `className?` last.
 - Use `ui/Modal.tsx` for any dialog — it carries the focus trap and the `aria` wiring.
-- **Put `data-surface="light"` on any dropdown inside `UserNavbar`.** `globals.css` re-declares the
-  raw vars dark under `[data-navbar]`; omitting it renders dark-on-dark. A repeat bug.
-- **Dark mode does not exist**: `<html className="light">` is hardcoded, `ThemeContext` is a frozen
-  `{theme:'light'}`, `ThemeToggle` is `=> null`. Design tokens are contrast-checked for light only.
+- **Put `data-panel` on any dropdown inside `UserNavbar`.** In light mode `globals.css` re-declares
+  the raw vars dark under `[data-navbar]` and `data-panel` resets them; omitting it renders
+  dark-on-dark. In dark mode the navbar is the page's surface-1 and the attribute is inert.
+- **Dark mode is real.** `ThemeContext` exposes `theme` (light/dark/system) and `resolvedTheme`;
+  `ThemeToggle` cycles them and sits in the navbar, the staff `Header` and the auth pages. Text on a
+  `bg-brand-primary` fill is `text-on-brand`, never `text-white`: the dark brand is light. Raw colours
+  stay only for overlays (`bg-black/*`), the always-dark code block, leaderboard medals, pie slices and
+  statement images. Check a new colour in both themes; `.dark` tokens are in `globals.css`.
 - **`MarkdownRenderer`'s rehype order `rehypeRaw → rehypeSanitize → rehypeKatex` is
   security-critical.** Reordering it either opens XSS or silently kills all math.
 
