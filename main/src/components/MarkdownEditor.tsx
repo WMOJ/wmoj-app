@@ -27,7 +27,7 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const handlePaste = useCallback(async (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const files = event.clipboardData?.files;
@@ -98,7 +98,7 @@ export function MarkdownEditor({
             type="button"
             onClick={() => setIsPreview(false)}
             className={`px-3 py-1 rounded-md text-sm ${!isPreview
-              ? 'bg-brand-primary text-white font-medium'
+              ? 'bg-brand-primary text-on-brand font-medium'
               : 'bg-surface-2 text-text-muted hover:bg-surface-3'
               }`}
           >
@@ -108,7 +108,7 @@ export function MarkdownEditor({
             type="button"
             onClick={() => setIsPreview(true)}
             className={`px-3 py-1 rounded-md text-sm ${isPreview
-              ? 'bg-brand-primary text-white font-medium'
+              ? 'bg-brand-primary text-on-brand font-medium'
               : 'bg-surface-2 text-text-muted hover:bg-surface-3'
               }`}
           >
@@ -123,7 +123,7 @@ export function MarkdownEditor({
             value={value}
             onChange={(val) => onChange(val || '')}
             height={height}
-            data-color-mode={theme === 'dark' ? 'dark' : 'light'}
+            data-color-mode={resolvedTheme}
             preview="edit"
             hideToolbar={false}
             visibleDragbar={false}

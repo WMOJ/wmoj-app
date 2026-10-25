@@ -120,7 +120,7 @@ function EditProfileForm() {
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <div className="w-24 h-24 rounded-lg bg-brand-primary flex items-center justify-center text-white text-3xl font-semibold">
+              <div className="w-24 h-24 rounded-lg bg-brand-primary flex items-center justify-center text-on-brand text-3xl font-semibold">
                 {initial}
               </div>
             )}
@@ -166,7 +166,7 @@ function EditProfileForm() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2 text-sm font-medium bg-brand-primary text-white rounded-lg hover:bg-brand-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2 text-sm font-medium bg-brand-primary text-on-brand rounded-lg hover:bg-brand-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>

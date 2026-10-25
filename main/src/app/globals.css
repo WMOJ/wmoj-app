@@ -1,18 +1,23 @@
 @import "tailwindcss";
 
+/* `dark:` follows the `.dark` class that the theme script puts on <html>
+   (see lib/theme.ts), not the OS, so an explicit "light" choice wins. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ==========================================================================
    WMOJ Design System v3.0 — Clean, Professional, Developer-Focused
    ========================================================================== */
 
-/* --- Color Tokens (Light Mode Only) ---
-   This app is hardcoded light (`<html className="light">`), so every accent
-   below is chosen to clear WCAG AA (4.5:1) for small text BOTH on the plain
-   surfaces (#ffffff / #fafafa / #f4f4f5) AND on its own 10%-opacity tint,
-   which is how `Badge` and the verdict maps render them (`bg-x/10 text-x`).
-   Measured contrast on the /10 tint over white is noted per token — do not
-   lighten these back onto Tailwind's 400/500 ramp, which is calibrated for a
-   dark surface this app does not have. */
+/* --- Color Tokens: light is the default, `.dark` swaps the palette ---
+   Every accent clears WCAG AA (4.5:1) for small text BOTH on the plain
+   surfaces AND on its own 10%-opacity tint, which is how `Badge` and the
+   verdict maps render them (`bg-x/10 text-x`). The light values are measured
+   on #ffffff / #fafafa / #f4f4f5; the dark values on #18181b / #27272a /
+   #09090b. Do not lighten the light accents back onto Tailwind's 400/500 ramp
+   without re-measuring — the dark accents below ARE that ramp, and they pass
+   only because the dark surfaces are dark enough (see the dark block). */
 :root {
+  color-scheme: light;
   --background: #fafafa;
   --foreground: #09090b;
   --surface-1: #ffffff;
@@ -28,6 +33,9 @@
   --color-warning: #854d0e;
   --color-info: #1d4ed8;
   --color-accent: #7e22ce;
+  /* Text drawn ON a brand fill (`bg-brand-primary text-on-brand`). White on the
+     light green; the dark brand below is light enough that white would fail. */
+  --on-brand: #ffffff;
   --font-heading: 'JetBrains Mono', 'Fira Code', monospace;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --border: #e4e4e7;
@@ -35,8 +43,39 @@
   --radius: 8px;
 }
 
-/* --- Dark Navbar (always dark against the light app) --- */
-[data-navbar] {
+/* --- Dark palette ---
+   Each text colour clears 4.5:1 on the surfaces it sits on (#09090b, #18181b,
+   #27272a, and #3f3f46 for surface-3), and each accent clears it at /10 over
+   #18181b and #27272a. text-muted is lifted from zinc-400 to #afafb7 because
+   it sits on surface-3 in the score cells and hover states, where zinc-400
+   measures 4.07:1. */
+.dark {
+  color-scheme: dark;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --surface-1: #18181b;
+  --surface-2: #27272a;
+  --surface-3: #3f3f46;
+  --color-brand-primary: #34d399;
+  /* In dark mode the hover pair lightens, the mirror of light mode. */
+  --color-brand-secondary: #6ee7b7;
+  --color-success: #4ade80;
+  --color-error: #f87171;
+  --color-warning: #facc15;
+  --color-info: #60a5fa;
+  --color-accent: #c084fc;
+  --on-brand: #09090b;
+  --border: #27272a;
+  --text-muted: #afafb7;
+}
+
+/* --- Navbar ---
+   Light mode keeps the navbar as a dark island against the light page, and
+   re-declares the raw colour vars dark inside it. Dropdowns in the island
+   carry `data-panel`, which resets them to the light palette.
+   Dark mode needs neither: the navbar is the page's own surface-1, and its
+   dropdowns inherit the dark palette. */
+html:not(.dark) [data-navbar] {
   --background: #27272a;
   --foreground: #e4e4e7;
   --surface-1: #3f3f46;
@@ -49,8 +88,7 @@
   border-bottom-color: #3f3f46;
 }
 
-/* --- Dropdown inside dark navbar — reset to light-mode tokens --- */
-[data-navbar] [data-surface="light"] {
+html:not(.dark) [data-navbar] [data-panel] {
   --background: #fafafa;
   --foreground: #09090b;
   --surface-1: #ffffff;
@@ -59,6 +97,12 @@
   --border: #e4e4e7;
   --text-muted: #52525b;
   color: #09090b;
+}
+
+.dark [data-navbar] {
+  background-color: var(--surface-1);
+  color: var(--foreground);
+  border-bottom-color: var(--border);
 }
 
 /* --- Tailwind CSS v4 Theme Mapping --- */
@@ -75,6 +119,7 @@
   --color-warning: var(--color-warning);
   --color-info: var(--color-info);
   --color-accent: var(--color-accent);
+  --color-on-brand: var(--on-brand);
   --color-border: var(--border);
   --color-text-muted: var(--text-muted);
   --font-sans: var(--font-body);
@@ -111,7 +156,7 @@ body {
 /* --- Selection --- */
 ::selection {
   background: var(--color-brand-primary);
-  color: white;
+  color: var(--on-brand);
 }
 
 /* ==========================================================================
@@ -181,6 +226,15 @@ body {
 .markdown-content img {
   max-width: 100%;
   border-radius: var(--radius);
+}
+
+/* Statement figures are often black-on-transparent PNGs that vanish on a dark
+   page. Give them a white backing in dark mode only; the raw white is the
+   point, not a palette colour. */
+.dark .markdown-content img {
+  background-color: #ffffff;
+  padding: 4px;
+  border-radius: 4px;
 }
 
 .markdown-content .katex-display {

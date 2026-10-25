@@ -245,7 +245,7 @@ export default function EditProblemClient({ problem }: { problem: ProblemData })
           {success && <div className="bg-success/10 border border-success/20 rounded-lg p-3"><p className="text-success text-sm">{success}</p></div>}
 
           <div className="flex gap-3">
-            <button type="submit" disabled={loading || isStaleAfterGen || isLive} title={isLive ? 'Live problems can only be edited by a Manager.' : undefined} className="h-10 px-5 bg-brand-primary text-white text-sm font-medium rounded-md hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            <button type="submit" disabled={loading || isStaleAfterGen || isLive} title={isLive ? 'Live problems can only be edited by a Manager.' : undefined} className="h-10 px-5 bg-brand-primary text-on-brand text-sm font-medium rounded-md hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
               {loading ? <><LoadingSpinner size="sm" /><span>Saving...</span></> : 'Save Changes'}
             </button>
             <Link href="/admin/problems/manage" className="h-10 px-5 bg-surface-2 text-foreground text-sm font-medium rounded-md hover:bg-surface-3 flex items-center">Cancel</Link>

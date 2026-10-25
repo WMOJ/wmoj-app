@@ -32,7 +32,7 @@ export function AuthPromptModal({ message, onClose }: AuthPromptModalProps) {
                 <div className="flex flex-col gap-2 pt-1">
                     <Link
                         href="/auth/login"
-                        className="h-10 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-secondary flex items-center justify-center"
+                        className="h-10 bg-brand-primary text-on-brand text-sm font-medium rounded-lg hover:bg-brand-secondary flex items-center justify-center"
                     >
                         Log In
                     </Link>

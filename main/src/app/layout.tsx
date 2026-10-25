@@ -9,6 +9,7 @@ import { ActiveContestRedirect } from "@/components/ActiveContestRedirect";
 import { AppShell } from "@/components/layout/AppShell";
 import { ToastContainer } from "@/components/ui/Toast";
 import { Analytics } from "@vercel/analytics/next";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const inter = Inter({
   variable: "--font-body",
@@ -65,7 +66,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light scroll-smooth">
+    // suppressHydrationWarning: the theme script adds `dark` to <html> before
+    // hydration, so the server markup and the first client render differ here.
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <head>
+        {/* Must stay the first script: it sets `dark` before the page paints. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >

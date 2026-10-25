@@ -116,10 +116,10 @@ function PieChart({ stats }: { stats: SubmissionStats }) {
             key={slice.key}
             d={slice.d}
             fill={slice.color}
-            stroke="white"
             strokeWidth={1.5}
             className="cursor-pointer transition-opacity"
-            style={{ opacity: hovered && hovered !== slice.key ? 0.5 : 1 }}
+            // Slice separators match the card, so they read as gaps in both themes.
+            style={{ stroke: 'var(--surface-1)', opacity: hovered && hovered !== slice.key ? 0.5 : 1 }}
             onMouseEnter={(e) => {
               setHovered(slice.key);
               trackTooltip(e);
@@ -394,7 +394,7 @@ export default function SubmissionsClient({
                       onClick={() => handleStatusChange(s)}
                       className={`flex-1 py-1.5 capitalize transition-colors ${
                         currentStatusFilter === s
-                          ? 'bg-brand-primary text-white'
+                          ? 'bg-brand-primary text-on-brand'
                           : 'bg-surface-2 text-text-muted hover:text-foreground hover:bg-surface-3'
                       }`}
                     >

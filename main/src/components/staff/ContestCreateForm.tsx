@@ -210,7 +210,7 @@ export function ContestCreateForm({ tree }: ContestCreateFormProps) {
           {success && <div className="bg-success/10 border border-success/20 rounded-lg p-3"><p className="text-success text-sm">{success}</p></div>}
 
           <div className="flex gap-3">
-            <button type="submit" disabled={loading} className="h-10 px-5 bg-brand-primary text-white text-sm font-medium rounded-md hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            <button type="submit" disabled={loading} className="h-10 px-5 bg-brand-primary text-on-brand text-sm font-medium rounded-md hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
               {loading ? <><LoadingSpinner size="sm" /><span>Creating...</span></> : 'Create Contest'}
             </button>
             <Link href={routes.dashboard} className="h-10 px-5 bg-surface-2 text-foreground text-sm font-medium rounded-md hover:bg-surface-3 flex items-center">Cancel</Link>

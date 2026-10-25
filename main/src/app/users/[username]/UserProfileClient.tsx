@@ -54,7 +54,7 @@ export default function UserProfileClient({ profile, heatmapData }: UserProfileC
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <div className="w-32 h-32 rounded-lg bg-brand-primary flex items-center justify-center text-white text-4xl font-semibold">
+              <div className="w-32 h-32 rounded-lg bg-brand-primary flex items-center justify-center text-on-brand text-4xl font-semibold">
                 {initial}
               </div>
             )}

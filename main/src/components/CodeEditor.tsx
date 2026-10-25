@@ -27,9 +27,9 @@ const LANGUAGE_MAP: Record<string, string> = {
 };
 
 export default function CodeEditor({ language, value, onChange, height = '400px', autoFocus = false }: CodeEditorProps) {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const monacoLanguage = LANGUAGE_MAP[language] || 'plaintext';
-  const monacoTheme = theme === 'light' ? 'light' : 'vs-dark';
+  const monacoTheme = resolvedTheme === 'light' ? 'light' : 'vs-dark';
 
   // Only grab focus on mount when the caller opts in (e.g. the submit page,
   // where the editor is the primary input and sits at the top). Focusing

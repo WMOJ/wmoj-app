@@ -102,7 +102,7 @@ export default function ManagerEditNewsPostClient({ post }: { post: NewsPost }) 
             <button
               type="submit"
               disabled={loading}
-              className="h-10 px-5 bg-brand-primary text-white text-sm font-medium rounded-md hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="h-10 px-5 bg-brand-primary text-on-brand text-sm font-medium rounded-md hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? <><LoadingSpinner size="sm" /><span>Saving...</span></> : 'Save Changes'}
             </button>

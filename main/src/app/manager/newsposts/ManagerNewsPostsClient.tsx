@@ -125,7 +125,7 @@ export default function ManagerNewsPostsClient({
           </div>
           <Link
             href="/manager/newsposts/create"
-            className="h-9 px-4 bg-brand-primary text-white text-sm font-medium rounded-md hover:bg-brand-secondary flex items-center gap-2 shrink-0"
+            className="h-9 px-4 bg-brand-primary text-on-brand text-sm font-medium rounded-md hover:bg-brand-secondary flex items-center gap-2 shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

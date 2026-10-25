@@ -19,19 +19,18 @@ import type { TestResult, Verdict } from '@/types/judge';
  * Per-verdict badge styling, built from the app's design tokens.
  *
  * ── Why these and not the other two copies ──────────────────────────────────
- * This app is light-only (`<html className="light">`, `ThemeContext` frozen to
- * `{theme:'light'}`), and the badges render as `bg-x/10 text-x` over a white or
- * near-white surface. The two staff copies used raw Tailwind ramp colours
- * calibrated for a DARK surface, and failed WCAG AA badly on this one — text
- * contrast measured against the /10 tint composited over `--surface-1`
- * (#ffffff):
+ * The badges render as `bg-x/10 text-x` over the page's surface. The two staff
+ * copies used raw Tailwind ramp colours, and failed WCAG AA badly on the light
+ * surface — text contrast measured against the /10 tint composited over
+ * `--surface-1` (#ffffff):
  *
  *     MLE  `bg-purple-500/10 text-purple-400`  →  2.34:1   (needs 4.5:1)
  *     RE   `bg-red-900/20 text-red-400`        →  1.91:1   (needs 4.5:1)
  *
  * The tokens below clear AA on all three light surfaces the badge sits on
  * (#ffffff, #fafafa, #f4f4f5); the worst case in the whole map is WA/RE at
- * 4.99:1 on `--surface-2`. These badges are `text-xs`, so the large-text 3:1
+ * 4.99:1 on `--surface-2`. `.dark` re-points the same tokens at brighter
+ * accents that clear AA on the dark surfaces, so no class here changes. These badges are `text-xs`, so the large-text 3:1
  * exemption does not apply to any of them.
  *
  * WA and RE deliberately share `--color-error`: the verdict string, not the

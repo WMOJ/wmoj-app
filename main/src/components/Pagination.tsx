@@ -151,7 +151,7 @@ export default function Pagination({
             key={p}
             aria-current="page"
             aria-label={`Page ${p}, current page`}
-            className={`${base} bg-brand-primary text-white pointer-events-none select-none`}
+            className={`${base} bg-brand-primary text-on-brand pointer-events-none select-none`}
           >
             {p}
           </span>

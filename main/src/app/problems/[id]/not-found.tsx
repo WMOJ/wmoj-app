@@ -13,7 +13,7 @@ export default function ProblemNotFound() {
           </p>
           <Link
             href="/problems"
-            className="h-10 px-5 inline-flex items-center justify-center bg-brand-primary text-white text-sm font-medium rounded-md hover:bg-brand-secondary"
+            className="h-10 px-5 inline-flex items-center justify-center bg-brand-primary text-on-brand text-sm font-medium rounded-md hover:bg-brand-secondary"
           >
             Back to problems
           </Link>
