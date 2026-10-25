@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/Toast';
 import { getContestStatus, formatTimeUntil, CONTEST_STATUS_VARIANT, CONTEST_STATUS_LABEL } from '@/utils/contestStatus';
 import type { ContestDetailRow } from '@/lib/queries/contests';
 import type { ContestStatus } from '@/types/contest';
+import type { RejoinState } from '@/lib/contestTimer';
 
 const MarkdownRenderer = dynamic(() => import('@/components/MarkdownRenderer').then(m => m.MarkdownRenderer), { ssr: false });
 
@@ -26,6 +27,8 @@ interface ContestViewClientProps {
   error?: string;
   initialContest?: ContestDetailRow;
   problems?: ContestProblem[];
+  /** First join, a return to a run the user left, or a run whose time is used up. */
+  rejoin?: RejoinState;
 }
 
 /**
@@ -42,7 +45,17 @@ function problemLabel(index: number): string {
   return label;
 }
 
-export default function ContestViewClient({ error, initialContest, problems = [] }: ContestViewClientProps) {
+/** "1 h 5 min" / "12 min" / "under a minute" — the time a returning participant has left. */
+function formatRemaining(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 1) return 'under a minute';
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+}
+
+export default function ContestViewClient({ error, initialContest, problems = [], rejoin = { kind: 'fresh' } }: ContestViewClientProps) {
   const router = useRouter();
   const { user, session } = useAuth();
   const { startCountdown } = useCountdown();
@@ -168,6 +181,31 @@ export default function ContestViewClient({ error, initialContest, problems = []
                       </button>
                       <p className="text-xs text-text-muted mt-3 text-center">
                         Virtual participation. Does not affect the leaderboard.
+                      </p>
+                    </>
+                  ) : rejoin.kind === 'timeUp' ? (
+                    <>
+                      <div className="w-full h-10 flex items-center justify-center text-sm text-text-muted border border-border rounded-lg bg-surface-2 cursor-not-allowed select-none">
+                        Your time is up
+                      </div>
+                      <p className="text-xs text-text-muted mt-3 text-center">
+                        You have used your full {initialContest.length} minutes.{' '}
+                        <Link href={`/contests/${initialContest.id}/leaderboard`} className="text-brand-primary hover:text-brand-secondary">
+                          View the leaderboard
+                        </Link>
+                      </p>
+                    </>
+                  ) : rejoin.kind === 'rejoin' ? (
+                    <>
+                      <button
+                        onClick={handleJoinClick}
+                        disabled={joining}
+                        className="w-full h-10 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {joining ? <><LoadingSpinner size="sm" /><span>Rejoining...</span></> : 'Rejoin Contest'}
+                      </button>
+                      <p className="text-xs text-text-muted mt-3 text-center">
+                        Your timer kept running while you were away: {formatRemaining(rejoin.remainingSeconds)} left.
                       </p>
                     </>
                   ) : (

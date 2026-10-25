@@ -43,6 +43,10 @@ export default function ContestsClient({
     () => new Set<string>(Array.isArray(joinHistory?.contest_ids) ? joinHistory.contest_ids : []),
     [joinHistory],
   );
+  const rejoinable = useMemo(
+    () => new Set<string>(Array.isArray(joinHistory?.rejoinable_contest_ids) ? joinHistory.rejoinable_contest_ids : []),
+    [joinHistory],
+  );
 
   const ongoingContests = activeContests.filter(c => getContestStatus(c) === 'ongoing');
   const upcomingContests = activeContests.filter(c => getContestStatus(c) === 'upcoming');
@@ -92,7 +96,9 @@ export default function ContestsClient({
         }
 
         if (joinedHistory.has(r.id)) {
-          if (status === 'virtual') {
+          // Virtual: always a fresh run. Ongoing with time left on the user's
+          // own clock: they may return to the run they left.
+          if (status === 'virtual' || rejoinable.has(r.id)) {
             return <Link href={`/contests/${r.id}/view`} className="text-sm font-medium text-brand-primary hover:text-brand-secondary">Rejoin →</Link>;
           }
           return <Link href={`/contests/${r.id}/leaderboard`} className="text-sm font-medium text-text-muted hover:text-foreground">Spectate</Link>;

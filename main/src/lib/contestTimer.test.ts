@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { remainingSeconds } from '@/lib/contestTimer';
+import { rejoinState, remainingSeconds } from '@/lib/contestTimer';
 
 /**
  * `remainingSeconds` is the whole of Invariant 4's arithmetic, and it has to
@@ -79,4 +79,34 @@ test('it never returns a value outside [0, duration] for any of these inputs', (
       assert.ok(Number.isInteger(value), `duration=${minutes}min offset=${offset}ms is not whole`);
     }
   }
+});
+
+test('a first join, or a return after only a virtual run, is a fresh full window', () => {
+  assert.deepEqual(rejoinState(null, 60, START_MS), { kind: 'fresh' });
+  assert.deepEqual(
+    rejoinState({ joined_at: START, is_virtual: true }, 60, START_MS + 90 * MINUTE_MS),
+    { kind: 'fresh' },
+  );
+});
+
+test('a return resumes the ORIGINAL window: the clock kept running while away', () => {
+  assert.deepEqual(
+    rejoinState({ joined_at: START, is_virtual: false }, 60, START_MS + 20 * MINUTE_MS),
+    { kind: 'rejoin', resumeFrom: START, remainingSeconds: 40 * 60 },
+  );
+});
+
+test('a return after the window closed is refused, at the boundary too', () => {
+  assert.deepEqual(
+    rejoinState({ joined_at: START, is_virtual: false }, 60, START_MS + 60 * MINUTE_MS),
+    { kind: 'timeUp' },
+  );
+  assert.deepEqual(
+    rejoinState({ joined_at: START, is_virtual: false }, 60, START_MS + 5 * 60 * MINUTE_MS),
+    { kind: 'timeUp' },
+  );
+});
+
+test('a competitive row with no joined_at cannot be timed, so it is refused', () => {
+  assert.deepEqual(rejoinState({ joined_at: null, is_virtual: false }, 60, START_MS), { kind: 'timeUp' });
 });

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/requestAuth';
+import { rejoinState } from '@/lib/contestTimer';
+import { getContestStatus } from '@/utils/contestStatus';
 
 export async function GET(request: Request) {
   try {
@@ -11,7 +13,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase
       .from('join_history')
-      .select('contest_id, is_virtual')
+      .select('contest_id, is_virtual, joined_at, contests(length, is_active, starts_at, ends_at)')
       .eq('user_id', userId);
 
     if (error) {
@@ -40,7 +42,19 @@ export async function GET(request: Request) {
       .filter(([, flags]) => flags.every(f => f === true))
       .map(([id]) => id);
 
-    return NextResponse.json({ contest_ids, virtual_contest_ids });
+    // Ongoing contests this user left with time still on their clock: the UI
+    // offers "Rejoin" for these instead of "Spectate". Same rule as
+    // `POST /join`, from the same function, so the button and the route agree.
+    const nowMs = Date.now();
+    const rejoinable_contest_ids = rows
+      .filter((row) => {
+        const contest = row.contests;
+        if (!row.contest_id || !contest || getContestStatus(contest) !== 'ongoing') return false;
+        return rejoinState(row, contest.length, nowMs).kind === 'rejoin';
+      })
+      .map((row) => row.contest_id as string);
+
+    return NextResponse.json({ contest_ids, virtual_contest_ids, rejoinable_contest_ids });
   } catch (e) {
     console.error('join-history error:', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

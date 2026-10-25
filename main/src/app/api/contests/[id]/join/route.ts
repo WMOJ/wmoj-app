@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/requestAuth';
 import { getContestStatus } from '@/utils/contestStatus';
-import { expireParticipation, readTimer } from '@/lib/contestTimer';
+import { expireParticipation, readTimer, rejoinState } from '@/lib/contestTimer';
 
 export async function POST(
   request: Request,
@@ -71,10 +71,10 @@ export async function POST(
     const [historyResult, existingResult] = await Promise.all([
       supabase
         .from('join_history')
-        .select('id')
+        .select('joined_at, is_virtual')
         .eq('user_id', userId)
         .eq('contest_id', id)
-        .limit(1),
+        .maybeSingle(),
       supabase
         .from('contest_participants')
         .select('contest_id')
@@ -90,10 +90,22 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to check join history' }, { status: 500 });
     }
 
-    // Block rejoin for ongoing contests, but allow for virtual (free re-join)
-    if (historyData && historyData.length > 0 && status !== 'virtual') {
-      return NextResponse.json({ error: 'You have already left this contest and cannot rejoin' }, { status: 403 });
+    // A virtual contest is always a fresh run. An ongoing one may be RETURNED
+    // to after leaving, but only into the same run: `rejoinState` resumes the
+    // original window (`joined_at + length`), which kept running while the
+    // user was away, so leaving can neither pause the clock nor reset it.
+    const rejoin =
+      status === 'virtual' ? { kind: 'fresh' as const } : rejoinState(historyData, contest.length, Date.now());
+    if (rejoin.kind === 'timeUp') {
+      return NextResponse.json(
+        { error: 'Your time for this contest has run out, so you cannot rejoin it' },
+        { status: 403 }
+      );
     }
+    // The instant this run's clock started: now for a fresh run, the original
+    // join for a return. Both writes below use it, so the timer and the
+    // leaderboard's scoring window (`joined_at + length`) stay the same window.
+    const runStartedAt = rejoin.kind === 'rejoin' ? rejoin.resumeFrom : new Date().toISOString();
 
     if (existErr) {
       console.error('Participation check error:', existErr);
@@ -133,16 +145,17 @@ export async function POST(
     // `id` while the uniqueness that matters is (user_id, contest_id), so a
     // bare upsert generates a fresh uuid, never fires ON CONFLICT (id), and
     // raises 23505 on the rejoin path this route deliberately allows. On a
-    // legitimate rejoin the row is refreshed rather than duplicated: a new
-    // joined_at, the current is_virtual (a virtual rerun must not be scored as
-    // the earlier competitive run), and left_at cleared.
+    // legitimate rejoin the row is refreshed rather than duplicated: the run's
+    // start (unchanged on a return to an ongoing contest), the current
+    // is_virtual (a virtual rerun must not be scored as the earlier competitive
+    // run), and left_at cleared.
     const { error: joinHistoryErr } = await supabase
       .from('join_history')
       .upsert(
         {
           user_id: userId,
           contest_id: id,
-          joined_at: new Date().toISOString(),
+          joined_at: runStartedAt,
           left_at: null,
           is_virtual: isVirtual
         },
@@ -174,7 +187,7 @@ export async function POST(
         {
           user_id: userId,
           contest_id: id,
-          started_at: new Date().toISOString(),
+          started_at: runStartedAt,
           duration_minutes: contest.length,
           is_active: true
         },

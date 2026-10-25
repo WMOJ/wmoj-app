@@ -58,6 +58,70 @@ export function remainingSeconds(
   return Math.max(0, Math.min(totalSeconds, totalSeconds - elapsedSeconds));
 }
 
+/** The one `join_history` row a user can have for a contest, as {@link rejoinState} reads it. */
+export interface PriorJoin {
+  joined_at: string | null;
+  is_virtual: boolean;
+}
+
+/**
+ * Whether a join is a user's first competitive run of this contest, or a RETURN
+ * to one they left, and — for a return — how much of it is left.
+ *
+ * Pure. The caller decides the contest is `ongoing`; a `virtual` contest never
+ * gets here, because every virtual join is a fresh run with a fresh timer.
+ *
+ * A return RESUMES the original run, it does not restart it: the clock is
+ * `joined_at + length`, and it kept running while the user was away. Anything
+ * else turns "leave, then rejoin" into a way to pause the timer, or to reset
+ * it to full. So once that window has closed there is nothing to return to,
+ * and `timeUp` is final for this contest.
+ *
+ * - No row, or only a virtual run of it ⇒ `fresh`: a full window from now.
+ * - A competitive row with time left ⇒ `rejoin`, resuming at `resumeFrom`.
+ * - A competitive row whose window closed, or whose `joined_at` is unreadable
+ *   ⇒ `timeUp`. Fails closed, like {@link remainingSeconds}.
+ */
+export type RejoinState =
+  | { kind: 'fresh' }
+  | { kind: 'rejoin'; resumeFrom: string; remainingSeconds: number }
+  | { kind: 'timeUp' };
+
+export function rejoinState(
+  prior: PriorJoin | null,
+  lengthMinutes: number,
+  nowMs: number,
+): RejoinState {
+  if (!prior || prior.is_virtual) return { kind: 'fresh' };
+  const remaining = remainingSeconds(prior.joined_at, lengthMinutes, nowMs);
+  if (prior.joined_at === null || remaining <= 0) return { kind: 'timeUp' };
+  return { kind: 'rejoin', resumeFrom: prior.joined_at, remainingSeconds: remaining };
+}
+
+/**
+ * READ. {@link rejoinState} for one (user, contest), from the user's own
+ * `join_history` row. A failed read is treated as no row — a first join — which
+ * only decides what the contest page OFFERS: `POST /join` re-reads the row and
+ * enforces the rule itself.
+ */
+export async function readRejoinState(
+  supabase: AppSupabaseClient,
+  userId: string,
+  contestId: string,
+  lengthMinutes: number,
+): Promise<RejoinState> {
+  const { data, error } = await supabase
+    .from('join_history')
+    .select('joined_at, is_virtual')
+    .eq('user_id', userId)
+    .eq('contest_id', contestId)
+    .maybeSingle();
+  if (error) {
+    console.error('[contestTimer] join_history read failed:', error);
+  }
+  return rejoinState(data, lengthMinutes, Date.now());
+}
+
 /** The state of one (user, contest) countdown. `remainingSeconds` is 0 whenever `expired`. */
 export interface TimerReading {
   expired: boolean;

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import ContestViewClient from './ContestViewClient';
 import { canUserAccessContest } from '@/lib/contestAccess';
 import { CONTEST_DETAIL_COLUMNS } from '@/lib/queries/contests';
+import { readRejoinState, type RejoinState } from '@/lib/contestTimer';
 
 interface EmbeddedProblem {
   id: string;
@@ -54,5 +55,13 @@ export default async function ContestViewPage({ params }: { params: Promise<{ id
     .filter((p): p is EmbeddedProblem => !!p)
     .map((p) => ({ id: p.id, name: p.name, points: p.points }));
 
-  return <ContestViewClient initialContest={contestData} problems={problems || []} />;
+  // Whether this visit is a first join, a return to a run the user left, or a
+  // run whose time is used up — the same rule `POST /join` enforces, decided
+  // here so the button never offers what the route will refuse.
+  const userId = authUser?.user?.id;
+  const rejoin: RejoinState = userId
+    ? await readRejoinState(supabase, userId, id, contestData.length)
+    : { kind: 'fresh' };
+
+  return <ContestViewClient initialContest={contestData} problems={problems || []} rejoin={rejoin} />;
 }

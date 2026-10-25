@@ -28,6 +28,18 @@ target contest accepts only problems not already in another contest.
   (PK is `id` ⇒ `23505`), never unfiltered (it would overwrite the sweep's true end instant).
 - `countdown_timers` has the same PK/UNIQUE split; `join` passes `onConflict` on both writes.
 
+## Rejoining
+
+A participant who left an **ongoing** contest may rejoin it, into the SAME run: `rejoinState`
+(`lib/contestTimer.ts`, tested) resumes the original window, `joined_at + length`, which kept
+running while they were away. `POST /join` writes that original instant back to both
+`join_history.joined_at` and `countdown_timers.started_at`, so the timer and the leaderboard's
+scoring window stay one window. Once it has closed the answer is `timeUp` and the join is refused —
+leaving must never pause the clock or reset it. A virtual contest is always a fresh run. The contest
+page (`readRejoinState`) and the contests list (`rejoinable_contest_ids` from
+`api/contests/join-history`) read the same function, so the button never offers what the route
+refuses.
+
 ## Leaderboards
 
 Contest leaderboards are **not point-weighted** — each problem contributes at most 1.0
